@@ -5,9 +5,10 @@
 *.exe
 *.sh
 *.o
-PreProcessedData/
-PostProcessedData/
-PlotData/
-ONNX/
+.DS_Store
+PreProcessedData/*
+PostProcessedData/*
+PlotData/*/
+ONNX/*
 .vscode/
 __pycache__/
