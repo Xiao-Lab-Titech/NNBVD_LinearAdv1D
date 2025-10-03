@@ -1,0 +1,13 @@
+*.log
+*.dat
+*.png
+*.gif
+*.exe
+*.sh
+*.o
+PreProcessedData/
+PostProcessedData/
+PlotData/
+ONNX/
+.vscode/
+__pycache__/
