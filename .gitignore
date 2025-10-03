@@ -7,8 +7,11 @@
 *.o
 .DS_Store
 PreProcessedData/*
+!PreProcessedData/.gitkeep
 PostProcessedData/*
+!PostProcessedData/.gitkeep
 PlotData/*/
 ONNX/*
+!ONNX/.gitkeep
 .vscode/
 __pycache__/
