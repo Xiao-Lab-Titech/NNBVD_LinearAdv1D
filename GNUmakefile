@@ -18,14 +18,17 @@ $(TARGET): $(OBJS)
 %.o: %.cpp
 	$(CC) $(CPPFLAGS) $(INCFLAGS) $(LIBS) -c $<
 
-clean:
+cleanall:
 	@rm -f $(OBJS) $(TARGET) *.out *.exe
+
+clean:
+	@rm -f $(OBJS) $(TARGET)
 
 rmdata:
 	@rm -f *.png *.gif *.eps *.dat
 
 all: clean
-	$(MAKE) clean
+	$(MAKE) cleanall
 	$(MAKE) 
 
 

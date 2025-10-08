@@ -31,35 +31,24 @@ int main (int argc, char *argv[])
 	analyzer->setWrite2FileOption(false, -1);
 	analyzer->setGeneratePreProcessedDataOption(false, 1000, 7);
 
-	Solver *slv1 = new Solver("6WBVD-d8_3000_1000_4");
-	Solver *slv2 = new Solver("NNBVD");
-	Solver *slv3 = new Solver("JS");
-	Solver *slv4 = new Solver("Z");
-	Solver *slv5 = new Solver("eta");
-	Solver *slv6 = new Solver("Z+");
-	Solver *slv7 = new Solver("ZA");
-	Solver *slv8 = new Solver("A");
-
+	Solver *slv1 = new Solver("org. BVD");
+	Solver *slv2 = new Solver("Strict1 BVD");
+	Solver *slv3 = new Solver("Strict2 BVD");
+	Solver *slv4 = new Solver("Strict3 BVD");
+	Solver *slv5 = new Solver("WENO-ZA");
 
 
 	analyzer->setSolver(slv1);
 	analyzer->setSolver(slv2);
-	//analyzer->setSolver(slv3);
-	//analyzer->setSolver(slv4);
+	analyzer->setSolver(slv3);
+	analyzer->setSolver(slv4);
 	//analyzer->setSolver(slv5);
-	analyzer->setSolver(slv6);
-	analyzer->setSolver(slv7);
-	analyzer->setSolver(slv8);
 
 	new RoeFlux(slv1);
 	new RoeFlux(slv2);
 	new RoeFlux(slv3);
 	new RoeFlux(slv4);
 	new RoeFlux(slv5);
-	new RoeFlux(slv6);
-	new RoeFlux(slv7);
-	new RoeFlux(slv8);
-
 
 	
 	new RK3(slv1);
@@ -67,19 +56,14 @@ int main (int argc, char *argv[])
 	new RK3(slv3);
 	new RK3(slv4);
 	new RK3(slv5);
-	new RK3(slv6);
-	new RK3(slv7);
-	new RK3(slv8);
 
 
-	new nW5BVD(slv1, {"JS","Z","eta","Zplus","ZA","A"});
-	new MLBasednW5BVD(slv2, onnx_path, isGPU, {"JS","Z","eta","Zplus","ZA","A"});
-	new WENO5(slv3, "JS");
-	new WENO5(slv4, "Z");
-	new WENO5(slv5, "eta");
-	new WENO5(slv6, "Zplus");
-	new WENO5(slv7, "ZA");
-	new WENO5(slv8, "A");
+	new nW5BVD(slv1, {"JS","Z","eta","Zplus","ZA","A"}, 0, false);
+	//new MLBasednW5BVD(slv2, onnx_path, isGPU, {"JS","Z","eta","Zplus","ZA","A"});
+	new nW5BVD(slv2, {"JS","Z","eta","Zplus","ZA","A"}, 1, false);
+	new nW5BVD(slv3, {"JS","Z","eta","Zplus","ZA","A"}, 2, false);
+	new nW5BVD(slv4, {"JS","Z","eta","Zplus","ZA","A"}, 3, false);
+	new WENO5(slv5, "ZA");
 
 
 
@@ -91,16 +75,16 @@ int main (int argc, char *argv[])
 
 
 	//analyzer->Solve();
-	//analyzer->plotSnap(-0.5,-0.1,0.9,1.1);
+	//analyzer->plotSnap(-0.5,-0.3,-0.1,1.1);
 	analyzer->plotSnap();
 	slv1->calcError();
 	slv2->calcError();
-	//slv3->calcError();
-	//slv4->calcError();
+	slv3->calcError();
+	slv4->calcError();
 	//slv5->calcError();
-	slv6->calcError();
-	slv7->calcError();
-	slv8->calcError();
+	//slv6->calcError();
+	//slv7->calcError();
+	//slv8->calcError();
 
 
 

@@ -68,7 +68,9 @@ void Analyzer::initGnuplotOption(FILE* fp, double xl, double xr, double yb, doub
 	if (yb != 0.0 || yt != 0.0) fprintf(fp, "set yrange [%.2f:%.2f] \n", yb, yt); 
 	//fprintf(fp, "set xtics %.2f,0.5,%.2f  \n", xl, xr); 
 	//fprintf(fp, "set ytics %.2f,0.5,%.2f  \n", ym, yM);
-	fprintf(fp, "set key right top\n");
+	fprintf(fp, "set key right outside\n");
+	fprintf(fp, "set size 1, 1\n");
+	fprintf(fp, "set term png size 750, 400\n");
 	//fprintf(fp, "set palette model HSV functions gray,1,1 \n");
 	fprintf(fp, "set colorsequence classic\n");
 	fprintf(fp, "set grid \n");

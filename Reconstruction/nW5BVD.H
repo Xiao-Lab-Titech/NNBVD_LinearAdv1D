@@ -10,7 +10,7 @@
 class nW5BVD : public Reconstruction 
 {
 	public :
-		nW5BVD(Solver* slv, std::vector<std::string> M);
+		nW5BVD(Solver* slv, std::vector<std::string> M, int TBV_type = 0, bool is_log_selection = false);
 		~nW5BVD(void);
 		void update(cellBoundary* q_bdry, const double* q);
 		std::string getName() const {std::string s = "nW5BVD";return s;}
@@ -41,11 +41,16 @@ class nW5BVD : public Reconstruction
 		double transfrom_time_;
 		double TBV_time_;
 		double selection_time_;
+
+		bool is_log_selection_;
 	
-		const int N_stencil_ = 5;
+		//const int N_stencil_ = 5;
 		int N_cand_func_;
 		cellBoundary** q_bdry_tmp_;
 		double** TBV_;
+		cellBoundary* TBV_mem_;
+		double* TBV_min_;
+		int TBV_type_;
 		double beta_;
 		double T1_;
 
@@ -53,7 +58,7 @@ class nW5BVD : public Reconstruction
 };
 
 
-nW5BVD::nW5BVD(Solver* slv, std::vector<std::string> M) : solver_(slv), M_(M) {
+nW5BVD::nW5BVD(Solver* slv, std::vector<std::string> M, int TBV_type, bool is_log_selection) : solver_(slv), M_(M), TBV_type_(TBV_type), is_log_selection_(is_log_selection) {
 	solver_->setReconstruction(this);
 	recon_time_ = 0.0;
 	reconstruction_time_ = 0.0;
@@ -75,6 +80,8 @@ nW5BVD::nW5BVD(Solver* slv, std::vector<std::string> M) : solver_(slv), M_(M) {
 	//printf("N=%d",N_cand_func_);
 	initVector2d<cellBoundary>(q_bdry_tmp_, N_cand_func_, N_max, {0.0, 0.0});
 	initVector2d<double>(TBV_, N_cand_func_, N_max, 0.0);
+	initVector1d<cellBoundary>(TBV_mem_, N_max, {99, 99});
+	initVector1d<double>(TBV_min_, N_max, 1.e+308);
 
 	//lambda_Zplus = pow(solver_->getDX(), 2.0/3.0);
 }
@@ -83,6 +90,8 @@ nW5BVD::~nW5BVD(void) {
 	int N_max = solver_->getNmax();
 	freeVector2d<cellBoundary>(q_bdry_tmp_, N_cand_func_);
 	freeVector2d<double>(TBV_, N_cand_func_);
+	freeVector1d<cellBoundary>(TBV_mem_);
+	freeVector1d<double>(TBV_min_);
 }
 
 //::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -94,8 +103,6 @@ void nW5BVD::update(cellBoundary* q_bdry, const double* q) {
 	double time_stamp1 = omp_get_wtime();
 
 	for (int m = 0; m < N_cand_func_; m++) {
-		//printf("m = %d, itr = %s\n", m, M_[m]);
-		//std::cout << "m = " << m << ", M_ = " << M_[m] << std::endl;
 		for (int i = gs - 2; i < N_max - gs + 1; i++) {
 			if (M_[m] == "THINC") {
 				q_bdry_tmp_[m][i+1].L = calcTHINC(q[i-1], q[i], q[i+1]);
@@ -105,40 +112,111 @@ void nW5BVD::update(cellBoundary* q_bdry, const double* q) {
 				q_bdry_tmp_[m][i+1].R = calcWENO5(M_[m], q[i+3], q[i+2], q[i+1], q[i], q[i-1]);
 			}
 		}
-		//++itr;
 	}
 
 	double time_stamp2 = omp_get_wtime();
-	for (int m = 0; m < N_cand_func_; m++) {
+	if (TBV_type_ == 0) { // simple TBV
 		for (int i = gs - 1; i < N_max - gs + 1; i++) {
-			TBV_[m][i] = fabs(q_bdry_tmp_[m][i].L - q_bdry_tmp_[m][i].R) + fabs(q_bdry_tmp_[m][i+1].L - q_bdry_tmp_[m][i+1].R);
+			double min_val = 1.e+308;
+			for (int m = 0; m < N_cand_func_; m++) {
+				TBV_[m][i] = fabs(q_bdry_tmp_[m][i].L - q_bdry_tmp_[m][i].R) + fabs(q_bdry_tmp_[m][i+1].L - q_bdry_tmp_[m][i+1].R);
+				if (min_val > TBV_[m][i]) {
+					min_val = TBV_[m][i];
+					TBV_mem_[i].R = m;
+					TBV_mem_[i+1].L = m;
+				}
+			}
+			TBV_min_[i] = min_val;
+		}
+	} else if (TBV_type_ == 1) { // strict TBV1
+		for (int i = gs - 1; i < N_max - gs + 1; i++) {
+			double min_val = 1.e+308;
+			for (int m1 = 0; m1 < N_cand_func_; m1++) {
+				for (int m2 = 0; m2 < N_cand_func_; m2++) {
+					for (int m3 = 0; m3 < N_cand_func_; m3++) {
+						double tmp = fabs(q_bdry_tmp_[m1][i].L - q_bdry_tmp_[m2][i].R) + fabs(q_bdry_tmp_[m2][i+1].L - q_bdry_tmp_[m3][i+1].R);
+						if (min_val > tmp) {
+							min_val = tmp;
+							//TBV_mem_[gs-2] = m1;
+							TBV_mem_[i].R = m2;
+							TBV_mem_[i+1].L = m2;
+							//TBV_mem_[gs] = m3;
+						}
+					}
+				}
+			}
+			TBV_min_[i] = min_val;
+		}
+	} else if (TBV_type_ == 2) { // strict TBV2
+		for (int i = gs - 1; i < N_max - gs + 1; i++) {
+			double min_val = 1.e+308;
+			for (int m1 = 0; m1 < N_cand_func_; m1++) {
+				for (int m2 = 0; m2 < N_cand_func_; m2++) {
+					double tmp = fabs(q_bdry_tmp_[m1][i].L - q_bdry_tmp_[m2][i].R);
+					if (min_val > tmp) {
+						min_val = tmp;
+						//TBV_mem_[gs-2] = m1;
+						TBV_mem_[i].L = m1;
+						TBV_mem_[i].R = m2;
+						//TBV_mem_[gs] = m3;
+					}
+				}
+			}
+			TBV_min_[i] = min_val;
+		}
+	} else if (TBV_type_ == 3) { // strict TBV3
+		for (int i = gs - 1; i < N_max - gs + 1; i++) {
+			double min_val = 1.e+308;
+			for (int m1 = 0; m1 < N_cand_func_; m1++) {
+				for (int m2 = 0; m2 < N_cand_func_; m2++) {
+					for (int m3 = 0; m3 < N_cand_func_; m3++) {
+						for (int m4 = 0; m4 < N_cand_func_; m4++) {
+							double tmp = fabs(q_bdry_tmp_[m1][i].L - q_bdry_tmp_[m2][i].R - q_bdry_tmp_[m3][i+1].L + q_bdry_tmp_[m4][i+1].R);
+							if (min_val > tmp) {
+								min_val = tmp;
+								//TBV_mem_[gs-2] = m1;
+								TBV_mem_[i].R = m2;
+								TBV_mem_[i+1].L = m3;
+								//TBV_mem_[gs] = m3;
+							}
+						}
+					}
+				}
+			}
+			TBV_min_[i] = min_val;
+		}
+	}
+	
+
+	double time_stamp3 = omp_get_wtime();
+
+	for (int i = gs - 1; i < N_max - gs + 1; i++) {
+		int idx_min_l, idx_min_r;
+		if (TBV_type_ == 2) {
+			idx_min_l = TBV_mem_[i].L;
+			idx_min_r = TBV_mem_[i].R;
+			q_bdry[i].L = q_bdry_tmp_[idx_min_l][i].L;
+			q_bdry[i].R = q_bdry_tmp_[idx_min_r][i].R;
+		} else {
+			idx_min_l = TBV_mem_[i+1].L;
+			idx_min_r = TBV_mem_[i].R;
+			q_bdry[i+1].L = q_bdry_tmp_[idx_min_l][i+1].L;
+			q_bdry[i].R = q_bdry_tmp_[idx_min_r][i].R;
 		}
 	}
 
-	double time_stamp3 = omp_get_wtime();
-	for (int i = gs - 1; i < N_max - gs + 1; i++) {
-		double min_TBV = 1.e+308;
-		int idx_min = 0;
-		for (int m = 0; m < N_cand_func_; m++) {
-			//std::cout << "i: " << i << ", j: " << j << ", m = " << m <<", min_TBV = " << min_TBV << ", nowTBV = " << TBV_[m][i][j] << std::endl;
-			if (min_TBV > TBV_[m][i]) {
-				//min_TBV = std::min(min_TBV, TBV_[m][i][j]);
-				min_TBV = TBV_[m][i];
-				idx_min = m;
+	if (is_log_selection_ && TBV_type_ != 2) {
+		for (int i = gs - 1; i < N_max - gs + 1; i++) {
+			for (int m = 0; m < N_cand_func_; m++) {
+				double diff = fabs(TBV_[m][i] - TBV_min_[i]);
+				double eps = 0.05;
+				if (diff < 1.0e-8) {
+					solver_->setSelector(i, m, 1.0-eps);
+				} else {
+					solver_->setSelector(i, m, eps);
+				}
 			}
 		}
-		//std::cout << "i: " << i << ", TBV = " << min_TBV << ", min_m_ = " << M_[idx_min] << std::endl;
-		for (int m = 0; m < N_cand_func_; m++) {
-			double diff = TBV_[m][i] - min_TBV;
-			double eps = 0.05;
-			if (diff < 1.0e-8) {
-				solver_->setSelector(i, m, 1.0-eps);
-			} else {
-				solver_->setSelector(i, m, eps);
-			}
-		}
-		q_bdry[i+1].L = q_bdry_tmp_[idx_min][i+1].L;
-		q_bdry[i].R = q_bdry_tmp_[idx_min][i].R;
 	}
 
 	double end = omp_get_wtime();
