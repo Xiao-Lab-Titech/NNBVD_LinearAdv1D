@@ -35,8 +35,8 @@ DataProcessor.pyで，指定したPreProcessedDataを前処理しPostProcessedDa
 コード内のPARAMETER欄にある変数によってデータの生成数，削除するデータやモデルの入力を変更することができる．
 論文の環境を実装したければ以下の変数のみ確認し，実行すれば良い．
 
-input_files→PreProcessedDataディレクトリのフォルダ名
-output_file→PostProcessedDataディレクトリ内の.datファイル
+- input_files→PreProcessedDataディレクトリのフォルダ名
+- output_file→PostProcessedDataディレクトリ内の.datファイル
 
 
 ## モデル学習方法
@@ -46,12 +46,12 @@ output_file→PostProcessedDataディレクトリ内の.datファイル
 コード内のPARAMETER欄にある変数によってデータの生成数，削除するデータやモデルの入力を変更することができる．
 論文の環境を実装したければ以下の変数のみ確認し，実行すれば良い．
 
-input_file→PostProcessedDataディレクトリ内の.datファイル群
-output_file→ONNXディレクトリ内の.onnxファイル
-model_name→モデル名，output_fileのファイル名と同じにすれば良い
-batch_size→バッチサイズ
-epoch→学習するエポック数
-learning_rate→学習率
+- input_file→PostProcessedDataディレクトリ内の.datファイル群
+- output_file→ONNXディレクトリ内の.onnxファイル
+- model_name→モデル名，output_fileのファイル名と同じにすれば良い
+- batch_size→バッチサイズ
+- epoch→学習するエポック数
+- learning_rate→学習率
 
 ※ModelTrainer.pyはデータセットのワンホット表現非対応の旧式のコード．多分消す．
 
