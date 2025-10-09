@@ -1,3 +1,4 @@
+
 1次元線形移流方程式を解くソルバー．
 MLBasednW5BVDをオブジェクト化することでNNBVDとして解くことができます（main.cpp参照）．
 
@@ -62,6 +63,6 @@ setGeneratePreProcessedDataOption関数のデータセット作成フラグがfa
 
 1. setSolver関数で，AnalyzerとSolverを結びつける
 2. 再構築関数/リーマンソルバ/時間積分法をオブジェクト化し，指定したSolverと結びつける
-3. setProblem関数で，計算する問題を設定する（問題の詳細はSolver.cpp参照）
+3. setProblem関数で，計算する問題を設定する（問題の詳細はSolver.cpp参照）．0→sine wave, 1→Square wave, 2→Jiang & Shu test, 3~→データセット生成に使う
 4. Parameter.Hで計算条件を設定
 5. make allでコンパイルして実行
