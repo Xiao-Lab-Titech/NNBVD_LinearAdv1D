@@ -69,8 +69,8 @@ void Analyzer::initGnuplotOption(FILE* fp, double xl, double xr, double yb, doub
 	//fprintf(fp, "set xtics %.2f,0.5,%.2f  \n", xl, xr); 
 	//fprintf(fp, "set ytics %.2f,0.5,%.2f  \n", ym, yM);
 	fprintf(fp, "set key right outside\n");
-	fprintf(fp, "set size 1, 1\n");
-	fprintf(fp, "set term png size 750, 400\n");
+	//fprintf(fp, "set size 1, 1\n");
+	//fprintf(fp, "set term png size 750, 400\n");
 	//fprintf(fp, "set palette model HSV functions gray,1,1 \n");
 	fprintf(fp, "set colorsequence classic\n");
 	fprintf(fp, "set grid \n");
@@ -90,6 +90,7 @@ void Analyzer::plotSnap(double xl, double xr, double yb, double yt, const char* 
 
 	if (yb != 0.0 || yt != 0.0) initGnuplotOption(fp, xl, xr, yb, yt);
 	else initGnuplotOption(fp, solvers_[0]->getXL(), solvers_[0]->getXR(), yb, yt);
+	fprintf(fp, "set term png size 750, 400\n");
 
 	fprintf(fp, "plot 0 notitle lw 3.5 lc rgb 'black' ,");
 	if (exist_exact_) fprintf(fp, "'-' title 'Exact sol.' w line lw 2.5  lc rgb 'red',");
@@ -136,7 +137,7 @@ void Analyzer::plotAnim(FILE* fp, int var) const {
     const double xr = solvers_[0] -> getXR();
 
 	initGnuplotOption(fp, xl, xr);
-
+	//fprintf(fp, "set terminal gif animate size 750, 400\n");
 	fprintf(fp, "plot 0 notitle lw 3.5 lc rgb 'black' ,");
 	if (exist_exact_) fprintf(fp, "'-' title 'Exact sol.' w line lw 2.5  lc rgb 'red',");
 
@@ -223,14 +224,19 @@ void Analyzer::Solve() {
 	if (is_anim_) {
 		fp_anim = popen("gnuplot", "w");
 		fprintf(fp_anim, "set terminal gif animate font \"Times New Roman, 20\" \n");
+		fprintf(fp_anim, "set terminal gif animate size 750, 400\n");
 		fprintf(fp_anim, "set output '%s.gif' \n", file_name_.c_str());
+
 	}
 
 	while (solvers_[0]->getT() <= solvers_[0]->getTE()) {
 		for(auto slv : solvers_){
 			slv->solveUntilNextFrame(N_frames_, log_result_, log_period_, gen_prep_data_, end_gen_ts_, N_stc_);
     	}
-		if (is_anim_) plotAnim(fp_anim, plot_var_);
+		if (is_anim_) {
+			//std::cout << "Generating animation..." << std::endl;
+			plotAnim(fp_anim, plot_var_);
+		}
 	}
 	for(auto slv : solvers_){
 		std::cout << slv->getReconstruction()->getName() << " recon_time: " << slv->getReconstruction()->getReconstructionTime() << std::endl; 

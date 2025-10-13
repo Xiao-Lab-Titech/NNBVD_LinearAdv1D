@@ -41,10 +41,39 @@ plt.rcParams["legend.fontsize"] = "small"
 #data2 = np.loadtxt(file2)
 
 
-x0 = [2000, 4000, 8000, 16000]
-d0 = [0.476636, 1.919362, 7.626130, 30.556490]
-d1 = [2.743625, 10.888591, 43.551588, 190.990010] #5.756, 5.673, 5.711, 6.250
-d2 = [1.797009, 4.273594, 15.944216, 61.508530]
+x0 = [200, 400, 800, 1600, 3200, 6400, 12800]
+d0 = [2.252e-05
+,2.604e-06
+,3.026e-07
+,3.563e-08
+,4.316e-09
+,4.439e-10
+,5.579e-11
+] #5.756, 5.673, 5.711, 6.250
+d1 = [3.809e-05
+,4.527e-06
+,5.141e-07
+,5.887e-08
+,7.813e-09
+,1.087e-09
+,1.575e-10
+] #5.756, 5.673, 5.711, 6.250
+d2 = [2.231e-05
+,2.616e-06
+,3.109e-07
+,3.575e-08
+,4.240e-09
+,4.438e-10
+,5.579e-11
+]
+d3 = [6.135e-05
+,8.594e-06
+,1.307e-06
+,2.046e-07
+,3.637e-08
+,6.427e-09
+,1.293e-09
+]
 
 
 #plt.figure()
@@ -54,9 +83,10 @@ ax=fig.add_subplot(111)
 
 
 #ax.plot(x0,d0,color="none",markeredgecolor='blue',markersize=6,markeredgewidth=1,alpha=0.8,marker="o",ls="",label="WTBVD")
-ax.plot(x0,d0,color="blue",markerfacecolor="white",markeredgecolor='blue',markersize=6,markeredgewidth=1,alpha=0.8,marker="s",ls="-",label="MTBVD/apriori allocating")
-ax.plot(x0,d1,color="green",markerfacecolor="white",markeredgecolor='green',markersize=6,markeredgewidth=1,alpha=0.8,marker="s",ls="-",label="MTBVD/allocating every recon.")
-ax.plot(x0,d2,color="red",markerfacecolor="white",markeredgecolor='red',markersize=6,markeredgewidth=1,alpha=0.8,marker="s",ls="-",label="DeepMTBVD/CPU")
+ax.plot(x0,d0,color="blue",markerfacecolor="white",markeredgecolor='blue',markersize=6,markeredgewidth=1,alpha=0.8,marker="s",ls="-",label="BVD org.")
+ax.plot(x0,d1,color="green",markerfacecolor="white",markeredgecolor='green',markersize=6,markeredgewidth=1,alpha=0.8,marker="s",ls="-",label="S BVD 1")
+ax.plot(x0,d2,color="red",markerfacecolor="white",markeredgecolor='red',markersize=6,markeredgewidth=1,alpha=0.8,marker="s",ls="-",label="S BVD 2")
+ax.plot(x0,d3,color="black",markerfacecolor="white",markeredgecolor='black',markersize=6,markeredgewidth=1,alpha=0.8,marker="s",ls="-",label="S BVD 3")
 
 
 ax.set_xlabel('$N_x$')
@@ -73,4 +103,4 @@ ax.set_xticks([2e3,1e4], minor=True)
 
 plt.legend()
 plt.tight_layout()
-plt.savefig("ct_allocate.png")
+plt.savefig("ct_diff_tbv_L2_8.png")

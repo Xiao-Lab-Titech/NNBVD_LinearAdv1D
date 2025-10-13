@@ -94,19 +94,20 @@ void Solver::initProblem(unsigned int idx_problem, bool is_calc_exact) {
 		initCell();
 		for (int i = 0; i < N_max_; i++) {
 			q_[i] = 1.0 + 0.5*sin(2.0*PI*(x_[i]-x_[gs_]));
+			qe_[i] = q_[i];
 		}
 		bc_->setBC(periodic, periodic);
 		te_ = 2.0;
 		if (is_calc_exact) {
 			exact_->setProblem(idx_problem_);
-			exact_->initialize(qe_);
+			//exact_->initialize(qe_);
 		}
 	} else if (idx_problem_ == 1) { // Square wave
 		name_of_problem_ = "SquareWave";
 		exist_exact_ = true;
-		xl_ = 0.0; xr_ = 1.0;
+		xl_ = -1.0; xr_ = 1.0;
 		initCell();
-		double xc = (xr_-xl_)*0.5;
+		double xc = (xr_+xl_)*0.5;
 		for (int i = 0; i < N_max_; i++) {
 			double x = x_[i];
 			if (xc-0.1 <= x && x <= xc+0.1) {
@@ -114,12 +115,13 @@ void Solver::initProblem(unsigned int idx_problem, bool is_calc_exact) {
 			} else {
 				q_[i] = 0.1;
 			}
+			qe_[i] = q_[i];
 		}
 		bc_->setBC(periodic, periodic);
 		te_ = 1.0; 
 		if (is_calc_exact) {
 			exact_->setProblem(idx_problem_);
-			exact_->initialize(qe_);
+			//exact_->initialize(qe_);
 		}
 	} else if (idx_problem_ == 2) { // Jiang & Shu test
 		name_of_problem_ = "Jiang&Shu";
@@ -150,12 +152,13 @@ void Solver::initProblem(unsigned int idx_problem, bool is_calc_exact) {
 			} else {
 				q_[i] = 0.0;
 			}
+			qe_[i] = q_[i];
 		}
 		bc_->setBC(periodic, periodic);
 		te_ = 2.0;
 		if (is_calc_exact) {
 			exact_->setProblem(idx_problem_);
-			exact_->initialize(qe_);
+			//exact_->initialize(qe_);
 		}
 	} if (idx_problem_ == 3) { // random sine
 		name_of_problem_ = "RandomSine";
@@ -171,6 +174,7 @@ void Solver::initProblem(unsigned int idx_problem, bool is_calc_exact) {
 		double f = dist2(mt);
 		for (int i = 0; i < N_max_; i++) {
 			q_[i] = A*sin(2.0*PI*f*(x_[i]-x_[gs_]));
+			qe_[i] = q_[i];
 		}
 		bc_->setBC(periodic, periodic);
 		te_ = 2.0;
@@ -192,6 +196,7 @@ void Solver::initProblem(unsigned int idx_problem, bool is_calc_exact) {
 			} else {
 				q_[i] = 0.0;
 			}
+			qe_[i] = q_[i];
 		}
 		bc_->setBC(periodic, periodic);
 		te_ = 1.0; 
@@ -219,6 +224,7 @@ void Solver::initProblem(unsigned int idx_problem, bool is_calc_exact) {
 				q_[i] = -top*(1.0 - fabs(x-j*xc)/hh);
 
 			}
+			qe_[i] = q_[i];
 		}
 		bc_->setBC(periodic, periodic);
 		te_ = 2.0; 
@@ -249,10 +255,46 @@ void Solver::initProblem(unsigned int idx_problem, bool is_calc_exact) {
 				}
 			}
 			q_[i] *= x-a[3];
-			//q_[i] = A*(x*b[0]-a[0])*(x*b[1]-a[1])*(x*b[2]-a[2])*(x*b[3]-a[3]);
+			qe_[i] = q_[i];
 		}
 		bc_->setBC(open, open);
 		te_ = 2.0; 
+	} if (idx_problem_ == 7) { // nonlinear discontinuity
+		name_of_problem_ = "NonlinearDiscontinuity";
+		exist_exact_ = true;
+		xl_ = -1.0; xr_ = 1.0;
+		initCell();
+		for (int i = 0; i < N_max_; i++) {
+			double x = x_[i];
+			if (x <= 0.0) {
+				q_[i] = -sin(PI*x) - 0.5*x*x*x;
+			} else {
+				q_[i] = -sin(PI*x) - 0.5*x*x*x + 1.0;
+			}
+			qe_[i] = q_[i];
+		}
+		bc_->setBC(periodic, periodic);
+		te_ = 2.0;
+		if (is_calc_exact) {
+			exact_->setProblem(idx_problem_);
+			exact_->initialize(qe_);
+		}
+	} if (idx_problem_ == 8) { // sin^3(pi*x)
+		name_of_problem_ = "cubedsine";
+		exist_exact_ = true;
+		xl_ = -1.0; xr_ = 1.0;
+		initCell();
+		for (int i = 0; i < N_max_; i++) {
+			double x = x_[i];
+			q_[i] = pow(sin(PI*x), 3);
+			qe_[i] = q_[i];
+		}
+		bc_->setBC(periodic, periodic);
+		te_ = 2.0;
+		if (is_calc_exact) {
+			exact_->setProblem(idx_problem_);
+			exact_->initialize(qe_);
+		}
 	}
 
 	if (IS_USE_T_END) te_ = T_END;
@@ -288,7 +330,7 @@ void Solver::solveUntilNextFrame(int N_frames, bool log_result, int log_period, 
             fluxer_->update(flux_, q_bdry_);
             updateDT();
             time_integral_->update(q_, flux_);
-			//if (ts_ == 7 && substep == 3) break;
+			//if (ts_ == 1 && substep == 1) break;
 			if (log_result && log_period > 0 && (ts_ % log_period == 0 || t_ + dt_ > te_)) {
 				write2File(log_period);
 			} else if (log_result && log_period <= 0 && substep >= max_substep && t_ + dt_ > te_) {
@@ -297,11 +339,11 @@ void Solver::solveUntilNextFrame(int N_frames, bool log_result, int log_period, 
 
 			substep++;
         } while(substep <= max_substep);
+		//if (ts_ == 1) break;
 		ts_ = ts_ + 1;
 		t_ = t_ + dt_;
 		relative_t = relative_t + dt_;
 		exact_->update(qe_);
-		//if (ts_ == 7) break;
     }
 
 }

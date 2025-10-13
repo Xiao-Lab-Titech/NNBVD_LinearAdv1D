@@ -22,7 +22,6 @@ class Exact {
         void initialize(double* qe);
 
     private :
-        double getOutsideCenterPos(double x_l, double x_c, double x_r, double domain_l, double domain_r);
 
     private :
         Solver* solver_;
@@ -37,147 +36,127 @@ void Exact::update(double* qe) {
     const double* x = solver_->getX();
     double xl = solver_->getXL();
     double xr = solver_->getXR();
+    double x_domain = xr - xl;
 
 
     if (idx_problem_ == 0) {
+		auto g = [&](double x) -> double {
+            return 1.0 + 0.5*sin(2.0*PI*(x-xl));
+		};
+
         for (int i = 0; i < N_max; i++) {
-            qe[i] = 1.0 + 0.5*sin(2.0*PI*((x[i] - x[gs]) - ADV_S*t));
-        }
-    } else if (idx_problem_ == 1) {
-        double x_domain = xr-xl;
-        double xc0 = (xr-xl)*0.5; 
-        double sq_now = fmod(xc0+ADV_S*t, x_domain);
-        double sq_out = getOutsideCenterPos(sq_now-0.1,sq_now,sq_now+0.1,xl,xr); 
-        bool is_eq_sq_pos = (abs(sq_now - sq_out) < 1.e-5) ? true : false;
-
-		for (int i = 0; i < N_max; i++) {
-            if (sq_now-0.1 <= x[i] && x[i] <= sq_now+0.1) {
-				qe[i] = 1.0;
-			} else if (!is_eq_sq_pos && (sq_out-0.1 <= x[i] && x[i] <= sq_out+0.1)) {
-				qe[i] = 1.0;
+            double x_new;
+            double transfer = ADV_S*t;
+            if (transfer > 0) {
+                x_new = fmod(-fabs(x[i] - xr) - transfer, x_domain) + xr;
             } else {
-                qe[i] = 0.1;
+                x_new = fmod(fabs(x[i] - xl) - transfer, x_domain) + xl;
             }
-		}
+            qe[i] = g(x_new);
+        }
+
+    } else if (idx_problem_ == 1) {
+		auto g = [&](double x) -> double {
+            double xc = (xr + xl)*0.5;
+            if (xc-0.1 <= x && x <= xc+0.1) {
+                return 1.0;
+            } else {
+                return 0.1;
+            }
+		};
+
+        for (int i = 0; i < N_max; i++) {
+            double x_new;
+            double transfer = ADV_S*t;
+            if (transfer > 0) {
+                x_new = fmod(-fabs(x[i] - xr) - transfer, x_domain) + xr;
+            } else {
+                x_new = fmod(fabs(x[i] - xl) - transfer, x_domain) + xl;
+            }
+            qe[i] = g(x_new);
+        }
     } else if (idx_problem_ == 2) {
-        double a = 0.5,
-			   z = -0.7,
-			   delta = 0.005,
-			   alpha = 10.0,
-			   beta = log(2.0)/(36.0*delta*delta);
-		auto G = [&](double x, double beta, double z) -> double {
-			return exp(-beta*(x-z)*(x-z));
-		};
-		auto F = [&](double x, double alpha, double a) -> double {
-			return sqrt(std::max(1.0 - alpha*alpha*(x-a)*(x-a), 0.0));
-		};
+		auto g = [&](double x) -> double {
+            double a = 0.5,
+                   z = -0.7,
+                   delta = 0.005,
+                   alpha = 10.0,
+                   beta = log(2.0)/(36.0*delta*delta);
+        	auto G = [&](double x, double beta, double z) -> double {
+			    return exp(-beta*(x-z)*(x-z));
+		    };
+		    auto F = [&](double x, double alpha, double a) -> double {
+			    return sqrt(std::max(1.0 - alpha*alpha*(x-a)*(x-a), 0.0));
+		    };
 
-        double x_domain = xr-xl;
-
-        double xc_now = fmod(ADV_S*t, x_domain);
-        double sq_now = fmod(xc_now - 0.3, x_domain);
-        double tri_now = fmod(xc_now + 0.1, x_domain);
-        double a_now = fmod(xc_now + a, x_domain);
-        double z_now = fmod(xc_now + z, x_domain);
-
-        double sq_out = getOutsideCenterPos(sq_now-0.1,sq_now,sq_now+0.1,xl,xr); 
-        double tri_out = getOutsideCenterPos(tri_now-0.1,tri_now,tri_now+0.1,xl,xr); 
-        double a_out = getOutsideCenterPos(a_now-0.1,a_now,a_now+0.1,xl,xr); 
-        double z_out = getOutsideCenterPos(z_now-0.1,z_now,z_now+0.1,xl,xr);
-        
-        bool is_eq_sq_pos = (abs(sq_now - sq_out) < 1.e-5) ? true : false;
-        bool is_eq_tri_pos = (abs(tri_now - tri_out) < 1.e-5) ? true : false;
-        bool is_eq_a_pos = (abs(a_now - a_out) < 1.e-5) ? true : false;
-        bool is_eq_z_pos = (abs(z_now - z_out) < 1.e-5) ? true : false;
-
-		for (int i = 0; i < N_max; i++) {
-            if (z_now-0.1 <= x[i] && x[i] <= z_now+0.1) {
-				qe[i] = (G(x[i],beta,z_now-delta) + G(x[i],beta,z_now+delta) + 4.0*G(x[i],beta,z_now))/6.0;
-			} else if (!is_eq_z_pos && (z_out-0.1 <= x[i] && x[i] <= z_out+0.1)) {
-				qe[i] = (G(x[i],beta,z_out-delta) + G(x[i],beta,z_out+delta) + 4.0*G(x[i],beta,z_out))/6.0;
-			} else if (sq_now-0.1 <= x[i] && x[i] <= sq_now+0.1) {
-				qe[i] = 1.0;
-			} else if (!is_eq_sq_pos && (sq_out-0.1 <= x[i] && x[i] <= sq_out+0.1)) {
-				qe[i] = 1.0;
-			} else if (tri_now-0.1 <= x[i] && x[i] <= tri_now+0.1) {
-				qe[i] = 1.0 - fabs(10.0*(x[i]-tri_now));
-			} else if (!is_eq_tri_pos && (tri_out-0.1 <= x[i] && x[i] <= tri_out+0.1)) {
-				qe[i] = 1.0 - fabs(10.0*(x[i]-tri_out));
-			} else if (a_now-0.1 <= x[i] && x[i] <= a_now+0.1) {
-				qe[i] = (F(x[i],alpha,a_now-delta) + G(x[i],alpha,a_now+delta) + 4.0*F(x[i],alpha,a_now))/6.0;
-			} else if (!is_eq_a_pos && (a_out-0.1 <= x[i] && x[i] <= a_out+0.1)) {
-				qe[i] = (F(x[i],alpha,a_out-delta) + G(x[i],alpha,a_out+delta) + 4.0*F(x[i],alpha,a_out))/6.0;
+			if (-0.8 <= x && x <= -0.6) {
+				return (G(x,beta,z-delta) + G(x,beta,z+delta) + 4.0*G(x,beta,z))/6.0;
+			} else if (-0.4 <= x && x <= -0.2) {
+				return 1.0;
+			} else if (0.0 <= x && x <= 0.2) {
+				return 1.0 - fabs(10.0*(x-0.1));
+			} else if (0.4 <= x && x <= 0.6) {
+				return (F(x,alpha,a-delta) + G(x,alpha,a+delta) + 4.0*F(x,alpha,a))/6.0;
 			} else {
-                qe[i] = 0.0;
+				return 0.0;
+			}
+		};
+        for (int i = 0; i < N_max; i++) {
+            double x_new;
+            double transfer = ADV_S*t;
+            if (transfer > 0) {
+                x_new = fmod(-fabs(x[i] - xr) - transfer, x_domain) + xr;
+            } else {
+                x_new = fmod(fabs(x[i] - xl) - transfer, x_domain) + xl;
             }
-		}
+            qe[i] = g(x_new);
+        }
+    } else if (idx_problem_ == 7) {
+		auto g = [&](double x) -> double {
+            if (-1.0 <= x && x <= 0.0) {
+                return -sin(PI*x) - 0.5*x*x*x;
+            } else if (0.0 < x && x <= 1.0) {
+                return -sin(PI*x) - 0.5*x*x*x + 1.0;
+            } else {
+                return 0.0;
+            }
+		};
+
+
+        for (int i = 0; i < N_max; i++) {
+            double x_new;
+            double transfer = ADV_S*t;
+            if (transfer > 0) {
+                x_new = fmod(-fabs(x[i] - xr) - transfer, x_domain) + xr;
+            } else {
+                x_new = fmod(fabs(x[i] - xl) - transfer, x_domain) + xl;
+            }
+            qe[i] = g(x_new);
+        }
+    } else if (idx_problem_ == 8) {
+		auto g = [&](double x) -> double {
+            return pow(sin(PI*x), 3);
+		};
+
+
+        for (int i = 0; i < N_max; i++) {
+            double x_new;
+            double transfer = ADV_S*t;
+            if (transfer > 0) {
+                x_new = fmod(-fabs(x[i] - xr) - transfer, x_domain) + xr;
+            } else {
+                x_new = fmod(fabs(x[i] - xl) - transfer, x_domain) + xl;
+            }
+            qe[i] = g(x_new);
+        }
     }
-
-
 }
 
 void Exact::setProblem(int idx_problem) {
     idx_problem_ = idx_problem;
 }
 
-void Exact::initialize(double* qe) {
-    int gs = solver_->getGhostcell();
-    int N_max = solver_->getNmax();
-    const double* x = solver_->getX();
-    double xl = solver_->getXL();
-    double xr = solver_->getXR();
-
-    if (idx_problem_ == 0) {
-        for (int i = 0; i < N_max; i++) {
-            qe[i] = 1.0 + 0.5*sin(2.0*PI*(x[i]-x[gs]));
-        }
-    } else if (idx_problem_ == 1) {
-		double xc = (xr-xl)*0.5;
-		for (int i = 0; i < N_max; i++) {
-			if (xc-0.1 <= x[i] && x[i] <= xc+0.1) {
-				qe[i] = 1.0;
-			} else {
-				qe[i] = 0.1;
-			}
-		}
-    } else if (idx_problem_ == 2) {
-        double a = 0.5,
-			   z = -0.7,
-			   delta = 0.005,
-			   alpha = 10.0,
-			   beta = log(2.0)/(36.0*delta*delta);
-		auto G = [&](double x, double beta, double z) -> double {
-			return exp(-beta*(x-z)*(x-z));
-		};
-		auto F = [&](double x, double alpha, double a) -> double {
-			return sqrt(std::max(1.0 - alpha*alpha*(x-a)*(x-a), 0.0));
-		};
-		for (int i = 0; i < N_max; i++) {
-			if (-0.8 <= x[i] && x[i] <= -0.6) {
-				qe[i] = (G(x[i],beta,z-delta) + G(x[i],beta,z+delta) + 4.0*G(x[i],beta,z))/6.0;
-			} else if (-0.4 <= x[i] && x[i] <= -0.2) {
-				qe[i] = 1.0;
-			} else if (0.0 <= x[i] && x[i] <= 0.2) {
-				qe[i] = 1.0 - fabs(10.0*(x[i]-0.1));
-			} else if (0.4 <= x[i] && x[i] <= 0.6) {
-				qe[i] = (F(x[i],alpha,a-delta) + G(x[i],alpha,a+delta) + 4.0*F(x[i],alpha,a))/6.0;
-			} else {
-				qe[i] = 0.0;
-			}
-		}
-    }
-}
-
-double Exact::getOutsideCenterPos(double x_l, double x_c, double x_r, double domain_l, double domain_r) {
-    double d_len = domain_r - domain_l;
-    if (x_l < domain_l) {
-        return x_c + d_len;
-    } else if (x_r > domain_r) {
-        return x_c - d_len;
-    } else {
-        return x_c;
-    }
-}
+void Exact::initialize(double* qe) {}
 
 
 #endif

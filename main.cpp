@@ -60,23 +60,23 @@ int main (int argc, char *argv[])
 
 	new nW5BVD(slv1, {"JS","Z","eta","Zplus","ZA","A"}, 0, false);
 	//new MLBasednW5BVD(slv2, onnx_path, isGPU, {"JS","Z","eta","Zplus","ZA","A"});
-	new nW5BVD(slv2, {"JS","Z","eta","Zplus","ZA","A"}, 1, false);
-	new nW5BVD(slv3, {"JS","Z","eta","Zplus","ZA","A"}, 2, false);
+	new nW5BVD(slv2, {"JS","Z","eta","Zplus","ZA","A"}, 2, false);
+	new nW5BVD(slv3, {"JS","Z","eta","Zplus","ZA","A"}, 1, false);
 	new nW5BVD(slv4, {"JS","Z","eta","Zplus","ZA","A"}, 3, false);
 	new WENO5(slv5, "ZA");
 
 
 
 	//slv1->generatePreProcessedDataByRandomSampling(50000, 7);
-	analyzer->setProblem(2);
+	analyzer->setProblem(8);
 	for (int i = 0; i < 1; i++) {
 		analyzer->Solve();
 	}
 
 
 	//analyzer->Solve();
-	//analyzer->plotSnap(-0.5,-0.3,-0.1,1.1);
-	analyzer->plotSnap();
+	analyzer->plotSnap(-0.1,0.1,-0.01,0.01);
+	//analyzer->plotSnap();
 	slv1->calcError();
 	slv2->calcError();
 	slv3->calcError();
