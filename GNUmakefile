@@ -8,7 +8,7 @@ LIBS = -L /usr/local/lib/ -lonnxruntime -fopenmp
 
 #------------------------------------------------------------------------------ 
 
-SRCS = main.cpp Solver.cpp Analyzer.cpp
+SRCS = main.cpp Solver.cpp Analyzer.cpp Problem.cpp Exact.cpp BoundaryCondition.cpp
 TARGET = run.exe
 OBJS = $(SRCS:.cpp=.o)
 

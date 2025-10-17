@@ -65,26 +65,16 @@ int main (int argc, char *argv[])
 	new nW5BVD(slv4, {"JS","Z","eta","Zplus","ZA","A"}, 3, false);
 	new WENO5(slv5, "ZA");
 
-
-
 	//slv1->generatePreProcessedDataByRandomSampling(50000, 7);
-	analyzer->setProblem(8);
+	analyzer->setProblem(2);
 	for (int i = 0; i < 1; i++) {
 		analyzer->Solve();
 	}
 
 
 	//analyzer->Solve();
-	analyzer->plotSnap(-0.1,0.1,-0.01,0.01);
-	//analyzer->plotSnap();
-	slv1->calcError();
-	slv2->calcError();
-	slv3->calcError();
-	slv4->calcError();
-	//slv5->calcError();
-	//slv6->calcError();
-	//slv7->calcError();
-	//slv8->calcError();
+	//analyzer->plotSnap(-0.1,0.1,-0.01,0.01);
+	analyzer->plotSnap();
 
 
 

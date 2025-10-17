@@ -21,10 +21,12 @@ struct cellBoundary {
 	double R;
 };
 
-struct ProblemInfo {
-	int i;
-	std::string name;
-	bool exist_exact;
+
+struct Errors {
+	double L1;
+	double L2;
+	double Linf;
+	int i_merr;
 };
 
 class Reconstruction;
@@ -32,6 +34,7 @@ class Flux;
 class TimeIntegral;
 class BoundaryCondition;
 class Exact;
+class Problem;
 
 
 class Solver 
@@ -44,10 +47,11 @@ class Solver
 
         void generatePreProcessedData(int N_stc);
         void generatePreProcessedDataByRandomSampling(int N_samples, int N_stc);
-		void initProblem(unsigned int idx_problem, bool is_calc_exact);
+		void setProblem(unsigned int idx_problem, bool is_calc_exact);
 		void solveUntilNextFrame(int N_frames, bool log_result, int log_period, bool gen_prep_data, int end_gen_ts, int N_stc);
 		void write2File(int log_period) const;
 		void initTime();
+		void initCell(int xl, int xr);
 		
 		std::string getLabel() const {return label_;}
 		int getNcell() const {return N_cell_;}
@@ -69,23 +73,26 @@ class Solver
 		const Flux* getFlux() const {return fluxer_;}
 		const TimeIntegral* getTimeIntegral() const {return time_integral_;}
 		const BoundaryCondition* getBoundaryCondition() const {return bc_;}
-		ProblemInfo getProblemInfo() const {return problem_info_;}
+		const Problem* getProblem() const {return problem_;}
+		
+		Errors getErrors() const {return errors_;}
 		//const Analyzer* getAnalyzer() const {return analyzer_;}
 
 		void setLabel(std::string label) {label_ = label;}
 		void setReconstruction(Reconstruction* recons) {recons_ = recons;}
 		void setFlux(Flux* flux) {fluxer_ = flux;}
 		void setTimeIntegral(TimeIntegral* ti) {time_integral_ = ti;}
+		void setBoundaryCondition(BoundaryCondition* bc) {bc_ = bc;}
+		void setExact(Exact* exact) {exact_ = exact;}
+		void setProblem(Problem* prob) {problem_ = prob;}
 		void setSelector(int idx_x, int recons, double likelifood) {selector_[idx_x][recons] = likelifood;}
 		void setLogName(std::string name) {log_name_ = name;}
 		void setPrepDirName(std::string name) {prep_dir_name_ = name;}
 
-		void showInfo() const;
 
-		void calcError() const;
+		void calcError();
 
 	private :
-		void initCell();
 		void updateDT();
 
 	private :
@@ -107,6 +114,7 @@ class Solver
 		Reconstruction* recons_;
 		TimeIntegral* time_integral_;
 		Exact* exact_;
+		Problem* problem_;
 		double cfl_; // Courant number
 		double gamma_;
 		double t_; // simulating time
@@ -114,10 +122,8 @@ class Solver
 		double dt_;
 		int ts_; // time step
 		double te_; // time at end of simulation
-		ProblemInfo problem_info_;
-		unsigned int idx_problem_;
-		std::string name_of_problem_;
-		bool exist_exact_;
+		int idx_problem_;
+		Errors errors_;
 		double** selector_; // indicating which candidate function BVD scheme selects.
 		int N_cand_func_; // number of candidate functions for BVD scheme
 };

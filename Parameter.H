@@ -7,7 +7,7 @@
 #define ADV_S 1.0 // advection speed
 
 #define IS_USE_T_END false
-#define T_END 2.0
+#define T_END 4.0
 
 #define KAPPA_REF 0.4
 #define PI 3.141592653589793

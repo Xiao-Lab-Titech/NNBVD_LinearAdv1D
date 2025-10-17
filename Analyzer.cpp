@@ -3,6 +3,7 @@
 #include "Reconstruction.H"
 #include "Flux.H"
 #include "TimeIntegral.H"
+#include "Problem.H"
 
 Analyzer::Analyzer(void) {
 }
@@ -32,14 +33,15 @@ std::string Analyzer::generateFileName(std::string disp_option, int idx_std_solv
 	std::string name_of_recons, name_of_flux, name_of_timeintegral;
 	const int N_cell = std_solver->getNcell();
 	const double cfl = std_solver->getCFL();
-	const ProblemInfo problem_info = std_solver->getProblemInfo();
+	const Problem* problem = std_solver->getProblem();
 	name_of_recons = std_solver->getReconstruction()->getName();
 	name_of_flux = std_solver->getFlux()->getName();
 	name_of_timeintegral = std_solver->getTimeIntegral()->getName();
-	std::string file_name = "p"+std::to_string(problem_info.i);
+	std::string file_name = "p"+std::to_string(problem->getIdx());
+
 	for (int i = 0; i < disp_option.length(); i++) {
 		char opt = disp_option[i]; 
-		if (opt == 'P') file_name += "_"+problem_info.name; // display problem name
+		if (opt == 'P') file_name += "_"+problem->getName(); // display problem name
 		if (opt == 'N') file_name += "_Nx"+std::to_string(N_cell); // display cell num.
 		if (opt == 'C') file_name += "_C"+std::to_string(cfl); // display CFL num.
 		if (opt == 'r') file_name += "_"+name_of_recons; // display recons.
@@ -80,6 +82,7 @@ void Analyzer::initGnuplotOption(FILE* fp, double xl, double xr, double yb, doub
 
 void Analyzer::plotSnap(double xl, double xr, double yb, double yt, const char* ext, int var) const {
 	FILE* fp = popen("gnuplot", "w");
+	bool exist_exact = solvers_[0]->getProblem()->hasExact();
 
 	generateLabel();
     //const double xl = solvers_[0] -> getXL();
@@ -93,7 +96,7 @@ void Analyzer::plotSnap(double xl, double xr, double yb, double yt, const char* 
 	fprintf(fp, "set term png size 750, 400\n");
 
 	fprintf(fp, "plot 0 notitle lw 3.5 lc rgb 'black' ,");
-	if (exist_exact_) fprintf(fp, "'-' title 'Exact sol.' w line lw 2.5  lc rgb 'red',");
+	if (exist_exact) fprintf(fp, "'-' title 'Exact sol.' w line lw 2.5  lc rgb 'red',");
 
 	int i = 1;
 	for (auto slv : solvers_) {
@@ -104,7 +107,7 @@ void Analyzer::plotSnap(double xl, double xr, double yb, double yt, const char* 
 			fprintf(fp, ", ");
 		}
 	}
-	if (exist_exact_) {
+	if (exist_exact) {
 		const int N_max = solvers_[0]->getNmax();
 		const int gs = solvers_[0]->getGhostcell();
 	    const double* qe = solvers_[0]->getQE();
@@ -135,11 +138,12 @@ void Analyzer::plotAnim(FILE* fp, int var) const {
 	generateLabel();
     const double xl = solvers_[0] -> getXL();
     const double xr = solvers_[0] -> getXR();
+	bool exist_exact = solvers_[0]->getProblem()->hasExact();
 
 	initGnuplotOption(fp, xl, xr);
 	//fprintf(fp, "set terminal gif animate size 750, 400\n");
 	fprintf(fp, "plot 0 notitle lw 3.5 lc rgb 'black' ,");
-	if (exist_exact_) fprintf(fp, "'-' title 'Exact sol.' w line lw 2.5  lc rgb 'red',");
+	if (exist_exact) fprintf(fp, "'-' title 'Exact sol.' w line lw 2.5  lc rgb 'red',");
 
 	int i = 1;
 	for (auto slv : solvers_) {
@@ -150,7 +154,7 @@ void Analyzer::plotAnim(FILE* fp, int var) const {
 			fprintf(fp, ", ");
 		}
 	}
-	if (exist_exact_) {
+	if (exist_exact) {
 		const int N_max = solvers_[0]->getNmax();
 		const int gs = solvers_[0]->getGhostcell();
 	    const double* qe = solvers_[0]->getQE();
@@ -180,28 +184,26 @@ void Analyzer::setProblem(int idx_problem) {
 	idx_problem_ = idx_problem;
 }
 
-void Analyzer::initProblem() {
+void Analyzer::initSolvers() {
 	for (auto slv : solvers_) {
 		slv->initTime();
-		slv->initProblem(idx_problem_, true);
+		slv->setProblem(idx_problem_, true);
 	}
-	name_of_problem_ = solvers_[0]->getProblemInfo().name;
-	exist_exact_ = solvers_[0]->getProblemInfo().exist_exact;
-}
-
-void Analyzer::showInfo() const {
-
-}
-
-void Analyzer::calcError() const {
-
 }
 
 
-void Analyzer::Solve() {
-	initProblem();
+
+
+void Analyzer::Solve(bool is_dry_run) {
+	is_dry_run_ = is_dry_run;
+        
+	initSolvers();
 	generateLabel();
 	file_name_ = generateFileName(disp_option_ ,idx_std_solver_ , plot_var_);
+
+	showInfo();
+
+	if (is_dry_run_) exit(0);
 
 	if (log_result_) {
 		for(int i = 0; i < solvers_.size(); i++){
@@ -229,10 +231,12 @@ void Analyzer::Solve() {
 
 	}
 
+
 	while (solvers_[0]->getT() <= solvers_[0]->getTE()) {
 		for(auto slv : solvers_){
 			slv->solveUntilNextFrame(N_frames_, log_result_, log_period_, gen_prep_data_, end_gen_ts_, N_stc_);
     	}
+		//slv->getErrors();
 		if (is_anim_) {
 			//std::cout << "Generating animation..." << std::endl;
 			plotAnim(fp_anim, plot_var_);
@@ -241,6 +245,8 @@ void Analyzer::Solve() {
 	for(auto slv : solvers_){
 		std::cout << slv->getReconstruction()->getName() << " recon_time: " << slv->getReconstruction()->getReconstructionTime() << std::endl; 
 	}
+	showError();
+
 	printf("\nSuccessfuly simulated!\n");
 }
 
@@ -277,4 +283,57 @@ void Analyzer::generateLabel() const {
 			slv->setLabel(label);
 		}
 	}
+}
+
+void Analyzer::showInfo() const {
+	std::string problem = solvers_[0]->getProblem()->getName();
+	std::string run_mode = "nomal"; // nomal and dry-run
+	if (is_dry_run_) run_mode = "dry";
+
+	std::cout << "+-" << std::right << std::setw(70) << std::setfill('-') << "" << "+" << std::endl;
+	std::cout << "| " << std::left << std::setw(10) << "Infomation" << std::left << std::setw(40) << std::setfill(' ') << "" << std::right << std::setw(10) << "mode:" << std::left << std::setw(10) << run_mode << "|" << std::endl;
+	std::cout << "+-" << std::right << std::setw(70) << std::setfill('-') << "" << "+" << std::endl;
+	std::cout << "| " << std::left << std::setw(10) << std::setfill(' ') << "Problem:" << std::left << std::setw(30) << problem << std::left << std::setw(30) << std::setfill(' ') << "" << "|" << std::endl;
+	std::cout << "+-" << std::right << std::setw(70) << std::setfill('-') << "" << "+" << std::endl;
+	std::cout << "| " << std::left << std::setw(15) << std::setfill(' ') << "label" << std::setw(10) << "cell_num" << std::setw(5) << "CFL" << std::setw(15) << "Recons." << std::setw(10) << "Flux" << std::setw(15) << "Time Integral" << "|" << std::endl;
+
+
+	for (auto slv : solvers_) {
+		std::string label = slv->getLabel();
+		std::string n_cell = std::to_string(slv->getNcell());
+		float cfl = slv->getCFL();
+
+		std::string recons = slv->getReconstruction()->getName();
+		std::string flux = slv->getFlux()->getName();
+		std::string ti = slv->getTimeIntegral()->getName();
+		
+		std::cout << "| " << std::left << std::setw(15) << label << std::setw(10) << n_cell << std::setw(5) << std::fixed << std::setprecision(2) << cfl << std::setw(15) << recons << std::setw(10) << flux << std::setw(15) << ti << "|" << std::endl;
+	}
+
+	std::cout << "+-" << std::right << std::setw(70) << std::setfill('-') << "" << "+" << std::endl;
+	std::cout << std::endl;
+}
+
+
+void Analyzer::showError() const {
+	std::cout << "■ error calculated." << std::endl;
+	std::cout << "L1 error   : ";
+	for (auto slv : solvers_) {
+		Errors err = slv->getErrors();
+		std::cout << std::scientific << std::setprecision(3) << err.L1 << " ";
+	}
+	std::cout << std::endl;
+	std::cout << "L2 error   : ";
+	for (auto slv : solvers_) {
+		Errors err = slv->getErrors();
+		std::cout << std::scientific << std::setprecision(3) << err.L2 << " ";
+	}
+	std::cout << std::endl;
+	std::cout << "Linf error : ";
+	for (auto slv : solvers_) {
+		Errors err = slv->getErrors();
+		std::cout << std::scientific << std::setprecision(3) << err.Linf << " ";
+	}
+	std::cout << std::endl;
+	
 }
