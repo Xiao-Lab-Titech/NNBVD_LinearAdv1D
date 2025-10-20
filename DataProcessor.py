@@ -26,10 +26,10 @@ input_files = "./PreProcessedData/6WBVD-d15_4/" # raw data
 output_file = "./PostProcessedData/6WBVD_test_true_4.dat" # training data
 N_kernels = 6 # Number of candidate func.
 N_stc = 7 # Number of stencil
-N_each_cases = 500
-batch_size = 1000
-ratio_of_extraction = 0.5
-threshold_of_likelihood = 0.5
+N_each_cases = 500 # how many data to extract for each case
+batch_size = 1000 # how many rows of data to load once
+#ratio_of_extraction = 0.5
+threshold_of_likelihood = 0.5 # threshold to consider the kernel is likely chosen
 
 del_piecewise_const = False
 del_not_monotonic = False

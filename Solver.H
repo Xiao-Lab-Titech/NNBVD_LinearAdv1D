@@ -52,6 +52,7 @@ class Solver
 		void write2File(int log_period) const;
 		void initTime();
 		void initCell(int xl, int xr);
+		void calcError();
 		
 		std::string getLabel() const {return label_;}
 		int getNcell() const {return N_cell_;}
@@ -74,9 +75,7 @@ class Solver
 		const TimeIntegral* getTimeIntegral() const {return time_integral_;}
 		const BoundaryCondition* getBoundaryCondition() const {return bc_;}
 		const Problem* getProblem() const {return problem_;}
-		
 		Errors getErrors() const {return errors_;}
-		//const Analyzer* getAnalyzer() const {return analyzer_;}
 
 		void setLabel(std::string label) {label_ = label;}
 		void setReconstruction(Reconstruction* recons) {recons_ = recons;}
@@ -90,7 +89,6 @@ class Solver
 		void setPrepDirName(std::string name) {prep_dir_name_ = name;}
 
 
-		void calcError();
 
 	private :
 		void updateDT();

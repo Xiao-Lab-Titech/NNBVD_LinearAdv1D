@@ -31,8 +31,37 @@ void LinearAdv1DProb::sineWave(double* q, double* qe) {
     exact_ = new Exact(solver_); // new LinearAdv1DEx(solver_);
     solver_->setBoundaryCondition(bc_);
     solver_->setExact(exact_);
+    // Default enum usage (unchanged):
     bc_->setBC(periodic, periodic);
-    exact_->setProblem(idx_);
+
+    // Example: set custom boundary functions for this problem.
+    // Uncomment and modify the lambdas below to provide per-problem boundary logic.
+    /*
+    bc_->setBC(periodic, periodic,
+        // left boundary lambda: fill left ghost cells
+        [](double* q, Solver* solver){
+            int gs = solver->getGhostcell();
+            int N_max = solver->getNmax();
+            const double* x = solver->getX();
+            // example: linear extrapolation from first interior cell
+            for (int i = 0; i < gs; ++i) {
+                q[i] = q[gs] + (q[gs] - q[gs+1]) * (gs - i);
+            }
+        },
+        // right boundary lambda: set to zero (Dirichlet)
+        [](double* q, Solver* solver){
+            int gs = solver->getGhostcell();
+            int N_max = solver->getNmax();
+            for (int i = 0; i < gs; ++i) {
+                q[N_max - 1 - i] = 0.0;
+            }
+        }
+    );
+    */
+    // You can supply the exact solution as a function from Problem to Exact:
+    // Example for sine wave:
+    // supply exact function (function-based exact, no fallback)
+    exact_->setExactFunction([xl = xl_](double x) -> double { return 1.0 + 0.5*sin(2.0*PI*(x-xl)); });
     //exact_->initialize(qe_);
 
 }
@@ -44,7 +73,7 @@ void LinearAdv1DProb::squareWave(double* q, double* qe) {
 
     name_ = "Square Wave";
     has_exact_ = true;
-    xl_ = -1.0; xr_ = 1.0;
+    xl_ = 0.0; xr_ = 1.0;
     double xc = (xr_+xl_)*0.5;
     solver_->initCell(xl_, xr_);
     for (int i = 0; i < N_max; i++) {
@@ -62,7 +91,10 @@ void LinearAdv1DProb::squareWave(double* q, double* qe) {
     solver_->setBoundaryCondition(bc_);
     solver_->setExact(exact_);
     bc_->setBC(periodic, periodic);
-    exact_->setProblem(idx_);
+    exact_->setExactFunction([xl = xl_, xr = xr_](double x) -> double {
+        double xc = (xr + xl)*0.5;
+        if (xc-0.1 <= x && x <= xc+0.1) return 1.0; else return 0.1;
+    });
     //exact_->initialize(qe_);
 }
 
@@ -107,7 +139,20 @@ void LinearAdv1DProb::JiangAndShu(double* q, double* qe) {
     solver_->setBoundaryCondition(bc_);
     solver_->setExact(exact_);
     bc_->setBC(periodic, periodic);
-    exact_->setProblem(idx_);
+    exact_->setExactFunction([a = 0.5, z = -0.7]() -> std::function<double(double)> {
+        return [a, z](double x) -> double {
+            double delta = 0.005;
+            double alpha = 10.0;
+            double beta = log(2.0)/(36.0*delta*delta);
+            auto G = [&](double x, double beta, double z) -> double { return exp(-beta*(x-z)*(x-z)); };
+            auto F = [&](double x, double alpha, double a) -> double { return sqrt(std::max(1.0 - alpha*alpha*(x-a)*(x-a), 0.0)); };
+            if (-0.8 <= x && x <= -0.6) return (G(x,beta,z-delta) + G(x,beta,z+delta) + 4.0*G(x,beta,z))/6.0;
+            else if (-0.4 <= x && x <= -0.2) return 1.0;
+            else if (0.0 <= x && x <= 0.2) return 1.0 - fabs(10.0*(x-0.1));
+            else if (0.4 <= x && x <= 0.6) return (F(x,alpha,a-delta) + G(x,alpha,a+delta) + 4.0*F(x,alpha,a))/6.0;
+            else return 0.0;
+        };
+    }());
     //exact_->initialize(qe_);
 }
 
@@ -288,7 +333,9 @@ void LinearAdv1DProb::nonlinearDiscontinuity(double* q, double* qe) {
     solver_->setBoundaryCondition(bc_);
     solver_->setExact(exact_);
     bc_->setBC(periodic, periodic);
-    exact_->setProblem(idx_);
+    exact_->setExactFunction([xl = xl_](double x) -> double {
+        if (x <= 0.0) return -sin(PI*x) - 0.5*x*x*x; else return -sin(PI*x) - 0.5*x*x*x + 1.0;
+    });
     //exact_->initialize(qe_);
 }
 void LinearAdv1DProb::cubedSine(double* q, double* qe) {
@@ -313,6 +360,6 @@ void LinearAdv1DProb::cubedSine(double* q, double* qe) {
     solver_->setBoundaryCondition(bc_);
     solver_->setExact(exact_);
     bc_->setBC(periodic, periodic);
-    exact_->setProblem(idx_);
+    exact_->setExactFunction([](double x) -> double { return pow(sin(PI*x), 3); });
     //exact_->initialize(qe_);
 }

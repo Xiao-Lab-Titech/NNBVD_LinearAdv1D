@@ -39,9 +39,9 @@ int main (int argc, char *argv[])
 
 
 	analyzer->setSolver(slv1);
-	analyzer->setSolver(slv2);
-	analyzer->setSolver(slv3);
-	analyzer->setSolver(slv4);
+	//analyzer->setSolver(slv2);
+	//analyzer->setSolver(slv3);
+	//analyzer->setSolver(slv4);
 	//analyzer->setSolver(slv5);
 
 	new RoeFlux(slv1);
@@ -66,7 +66,7 @@ int main (int argc, char *argv[])
 	new WENO5(slv5, "ZA");
 
 	//slv1->generatePreProcessedDataByRandomSampling(50000, 7);
-	analyzer->setProblem(2);
+	analyzer->setProblem(8);
 	for (int i = 0; i < 1; i++) {
 		analyzer->Solve();
 	}

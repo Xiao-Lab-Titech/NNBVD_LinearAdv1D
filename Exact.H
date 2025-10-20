@@ -2,6 +2,7 @@
 #define _EXACT_H_
 #include "Solver.H"
 #include "Parameter.H"
+#include <functional>
 // Exact solution of 1D Riemann problem for general initial values
 
 // Reference: E.F. Toro, "Riemann Solvers and Numerical Methods for Fluid Dynamics" (2009).
@@ -17,15 +18,18 @@ class Exact {
         Exact(Solver* slv) : solver_(slv) {}
 		~Exact(){}
 
-		void update(double* qe);
-        void setProblem(int idx_problem);
-        void initialize(double* qe);
+        // function signature: given x return exact solution value
+        using ExactFunc = std::function<double(double)>;
 
-    private :
+        void update(double* qe);
+        void setProblem(int idx_problem);
+        void setExactFunction(ExactFunc f) { g_func_ = f; }
+        void initialize(double* qe);
 
     private :
         Solver* solver_;
         int idx_problem_;
+        ExactFunc g_func_;
 
 };
 
