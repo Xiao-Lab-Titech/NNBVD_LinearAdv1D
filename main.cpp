@@ -31,7 +31,7 @@ int main (int argc, char *argv[])
 	analyzer->setWrite2FileOption(false, -1);
 	analyzer->setGeneratePreProcessedDataOption(false, 1000, 7);
 
-	Solver *slv1 = new Solver("org. BVD");
+	Solver *slv1 = new Solver("BVD");
 	Solver *slv2 = new Solver("NNBVD");
 	//Solver *slv3 = new Solver("Strict2 BVD");
 	//Solver *slv4 = new Solver("Strict3 BVD");
@@ -82,4 +82,5 @@ int main (int argc, char *argv[])
 	return 0;  
 } 
  
+
 
