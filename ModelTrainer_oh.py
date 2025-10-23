@@ -56,9 +56,9 @@ plt.rcParams["mathtext.fontset"] = 'cm'
 plt.rcParams["legend.fontsize"] = "small"
 
 #input_file = {"./PostProcessedData/6WBVDdataset_nrm1_d15_3000_1000_4.dat"}
-input_file = {"./PostProcessedData/6WBVD_test_true_4.dat"}
-output_file = "./ONNX/tmp.onnx"
-model_name = "tmp"
+input_file = {"./PostProcessedData/test.dat"}
+output_file = "./ONNX/test.onnx"
+model_name = "test"
 #dmmy_input = torch.tensor([[0, 0.166667, 0.333333, 0.5, 0.666667, 0.8, 0.9]])
 dmmy_input = torch.tensor([[0, 0.166667, 0.333333, 0.5, 0.666667, 0.8, 0.9,0.123,0.234,0.534,0.2134,0.51345,0.234,0.1235,0.1324,0.513]]) # 16
 #dmmy_input = torch.tensor([[0, 0.166667, 0.333333, 0.5, 0.666667, 0.8, 0.9,0.123,0.234,0.534,0.2134,0.51345,0.234,0.1235,0.1324,0.513, 0.123]]) # 17
@@ -430,3 +430,4 @@ torch.onnx.export(net_cpu, dmmy_input, output_file, input_names=['input'],
                     'output':
                             {0: 'batch_size'}
                     })
+
