@@ -20,10 +20,10 @@ import random
 #  PARAMETER   #
 #--------------#
 
-input_files = "./PreProcessedData/6WBVD-d15_4/" # raw data
+input_files = "./PreProcessedData/BVD/" # raw data
 #input_files = "./PreProcessedData/nW5BVD_rand/" # raw data
 #input_files = "./PreProcessedData/tmp/" # raw data
-output_file = "./PostProcessedData/6WBVD_test_true_4.dat" # training data
+output_file = "./PostProcessedData/test.dat" # training data
 N_kernels = 6 # Number of candidate func.
 N_stc = 7 # Number of stencil
 N_each_cases = 500 # how many data to extract for each case
@@ -524,3 +524,4 @@ if all_x_print_list:
     print(f"Save dataset ({output_file})")
 else:
     print("No data processed.")
+
