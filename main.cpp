@@ -21,8 +21,8 @@
 
 int main (int argc, char *argv[]) 
 {
-	const char* onnx_path = "./ONNX/d15_3000_1000_4.onnx";
-	bool isGPU = true;
+	const char* onnx_path = "./ONNX/test.onnx";
+	bool isGPU = false;
 
 	Analyzer* analyzer = new Analyzer();
 	analyzer->setPlotOption(false, 30, 0);
@@ -32,10 +32,10 @@ int main (int argc, char *argv[])
 	analyzer->setGeneratePreProcessedDataOption(false, 1000, 7);
 
 	Solver *slv1 = new Solver("org. BVD");
-	Solver *slv2 = new Solver("Strict1 BVD");
-	Solver *slv3 = new Solver("Strict2 BVD");
-	Solver *slv4 = new Solver("Strict3 BVD");
-	Solver *slv5 = new Solver("WENO-ZA");
+	Solver *slv2 = new Solver("NNBVD");
+	//Solver *slv3 = new Solver("Strict2 BVD");
+	//Solver *slv4 = new Solver("Strict3 BVD");
+	//Solver *slv5 = new Solver("WENO-ZA");
 
 
 	analyzer->setSolver(slv1);
@@ -46,27 +46,27 @@ int main (int argc, char *argv[])
 
 	new RoeFlux(slv1);
 	new RoeFlux(slv2);
-	new RoeFlux(slv3);
-	new RoeFlux(slv4);
-	new RoeFlux(slv5);
+	//new RoeFlux(slv3);
+	//new RoeFlux(slv4);
+	//new RoeFlux(slv5);
 
 	
 	new RK3(slv1);
 	new RK3(slv2);
-	new RK3(slv3);
-	new RK3(slv4);
-	new RK3(slv5);
+	//new RK3(slv3);
+	//new RK3(slv4);
+	//new RK3(slv5);
 
 
 	new nW5BVD(slv1, {"JS","Z","eta","Zplus","ZA","A"}, 0, false);
-	//new MLBasednW5BVD(slv2, onnx_path, isGPU, {"JS","Z","eta","Zplus","ZA","A"});
-	new nW5BVD(slv2, {"JS","Z","eta","Zplus","ZA","A"}, 2, false);
-	new nW5BVD(slv3, {"JS","Z","eta","Zplus","ZA","A"}, 1, false);
-	new nW5BVD(slv4, {"JS","Z","eta","Zplus","ZA","A"}, 3, false);
-	new WENO5(slv5, "ZA");
+	new MLBasednW5BVD(slv2, onnx_path, isGPU, {"JS","Z","eta","Zplus","ZA","A"});
+	//new nW5BVD(slv2, {"JS","Z","eta","Zplus","ZA","A"}, 2, false);
+	//new nW5BVD(slv3, {"JS","Z","eta","Zplus","ZA","A"}, 1, false);
+	//new nW5BVD(slv4, {"JS","Z","eta","Zplus","ZA","A"}, 3, false);
+	//new WENO5(slv5, "ZA");
 
 	//slv1->generatePreProcessedDataByRandomSampling(50000, 7);
-	analyzer->setProblem(8);
+	analyzer->setProblem(2);
 	for (int i = 0; i < 1; i++) {
 		analyzer->Solve();
 	}
@@ -82,3 +82,4 @@ int main (int argc, char *argv[])
 	return 0;  
 } 
  
+
