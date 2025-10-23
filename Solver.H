@@ -14,6 +14,7 @@
 #include <set>
 #include <filesystem>
 #include <random>
+#include <functional>
 
 
 struct cellBoundary {
@@ -67,9 +68,9 @@ class Solver
 		double getTE() const {return te_;}
 		double getTS() const {return ts_;}
 		double getGamma() const {return gamma_;}
-		const double* getX() const {return x_;}
-		const double* getQ() const {return q_;}
-		const double* getQE() const {return qe_;}
+		const std::vector<double>& getX() const {return x_;}
+		const std::vector<double>& getQ() const {return q_;}
+		const std::vector<double>& getQE() const {return qe_;}
 		const Reconstruction* getReconstruction() const {return recons_;}
 		const Flux* getFlux() const {return fluxer_;}
 		const TimeIntegral* getTimeIntegral() const {return time_integral_;}
@@ -102,11 +103,11 @@ class Solver
 		double xl_, xr_; // left/right-side of x value
 		int N_max_; // The number of cells including ghost cells
 		int gs_;
-		double* x_; // vector of x
-		double* q_; // numerical solution. conservative variable
-		double* qe_; // Exact solution. primitive variable
-		double* flux_; // numerical flux
-		cellBoundary* q_bdry_; // cell boundary by reconstruction
+		std::vector<double> x_; // vector of x
+		std::vector<double> q_; // numerical solution. conservative variable
+		std::vector<double> qe_; // Exact solution. primitive variable
+		std::vector<double> flux_; // numerical flux
+		std::vector<cellBoundary> q_bdry_; // cell boundary by reconstruction
 		Flux* fluxer_;
 		BoundaryCondition* bc_;
 		Reconstruction* recons_;
@@ -122,7 +123,7 @@ class Solver
 		double te_; // time at end of simulation
 		int idx_problem_;
 		Errors errors_;
-		double** selector_; // indicating which candidate function BVD scheme selects.
+		std::vector<std::vector<double>> selector_; // indicating which candidate function BVD scheme selects.
 		int N_cand_func_; // number of candidate functions for BVD scheme
 };
 

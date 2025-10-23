@@ -1,6 +1,6 @@
 #include "BoundaryCondition.H"
 
-void BoundaryCondition::update(double* q) {
+void BoundaryCondition::update(std::vector<double>& q) {
     int gs = solver_->getGhostcell();
     int N_max = solver_->getNmax();
     // If user provided a custom left-side boundary function, use it.

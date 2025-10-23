@@ -7,7 +7,7 @@
 #include "Problem.H"
 //#include "Exact.H"
 //#include "Analyzer.H"
-#include "RawVector.H"
+//#include <vector>
 
 FILE *fp_anim;
 FILE *fp_snap;
@@ -21,11 +21,11 @@ Solver::Solver(void) {
 	dt_ = 0.0;
 	ts_ = 0;
 	
-	initVector1d<double>(x_, N_max_, 0.0);
-	initVector1d<double>(q_, N_max_, 0.0);
-	initVector1d<double>(qe_, N_max_, 0.0);
-	initVector1d<cellBoundary>(q_bdry_, N_max_, {0.0, 0.0});
-	initVector1d<double>(flux_, N_max_, 0.0);
+	x_.assign(N_max_, 0.0);
+	q_.assign(N_max_, 0.0);
+	qe_.assign(N_max_, 0.0);
+	q_bdry_.assign(N_max_, {0.0, 0.0});
+	flux_.assign(N_max_, 0.0);
 }
 
 Solver::Solver(std::string label) : label_(label) {
@@ -36,11 +36,11 @@ Solver::Solver(std::string label) : label_(label) {
 	t_ = 0.0;
 	dt_ = 0.0;
 	ts_ = 0;
-	initVector1d<double>(x_, N_max_, 0.0);
-	initVector1d<double>(q_, N_max_, 0.0);
-	initVector1d<double>(qe_, N_max_, 0.0);
-	initVector1d<cellBoundary>(q_bdry_, N_max_, {0.0, 0.0});
-	initVector1d<double>(flux_, N_max_, 0.0);
+	x_.assign(N_max_, 0.0);
+	q_.assign(N_max_, 0.0);
+	qe_.assign(N_max_, 0.0);
+	q_bdry_.assign(N_max_, {0.0, 0.0});
+	flux_.assign(N_max_, 0.0);
 }
 
 Solver::Solver(std::string label, int N_cell, int gs, double cfl) : label_(label), N_cell_(N_cell), gs_(gs), cfl_(cfl) {
@@ -48,22 +48,17 @@ Solver::Solver(std::string label, int N_cell, int gs, double cfl) : label_(label
 	t_ = 0.0;
 	dt_ = 0.0;
 	ts_ = 0;
-	initVector1d<double>(x_, N_max_, 0.0);
-	initVector1d<double>(q_, N_max_, 0.0);
-	initVector1d<double>(qe_, N_max_, 0.0);
-	initVector1d<cellBoundary>(q_bdry_, N_max_, {0.0, 0.0});
-	initVector1d<double>(flux_, N_max_, 0.0);
+	x_ = std::vector<double>(N_max_, 0.0);
+	q_ = std::vector<double>(N_max_, 0.0);
+	qe_ = std::vector<double>(N_max_, 0.0);
+	q_bdry_ = std::vector<cellBoundary>(N_max_, {0.0, 0.0});
+	flux_ = std::vector<double>(N_max_, 0.0);
 }
 
 Solver::~Solver(void) {
 	delete bc_;
 	delete exact_;
-	freeVector1d<double>(x_);
-	freeVector1d<double>(q_);
-	freeVector1d<double>(qe_);
-	freeVector1d<cellBoundary>(q_bdry_);
-	freeVector1d<double>(flux_);
-	freeVector2d<double>(selector_, N_max_);
+	// std::vector members are automatically deallocated
 }
 
 void Solver::initTime() {
@@ -87,7 +82,7 @@ void Solver::setProblem(unsigned int idx_problem, bool is_calc_exact) {
 	if (recons_->getName().find("BVD")!=std::string::npos) {
 		N_cand_func_ = recons_->getCandidateFunctionLabels().size();
 	}
-	initVector2d<double>(selector_, N_max_, N_cand_func_, 0.0);
+	selector_.resize(N_max_, std::vector<double>(N_cand_func_, 0.0));
 
 	problem_ = new LinearAdv1DProb(this);
 	problem_->setIdx(idx_problem);
@@ -208,16 +203,15 @@ void Solver::generatePreProcessedData(int N_stc) { // dataset have conservative 
 		exit(EXIT_FAILURE); 
 	}
 
-	double* q_pri, *diff_f1, *diff_f2, *diff_b2, *diff_c2, *diff_c2_2;
-	initVector1d<double>(q_pri, N_stc, 0.0);
-	initVector1d<double>(diff_f1, N_max_, 0.0);
-	initVector1d<double>(diff_f2, N_max_, 0.0);
-	initVector1d<double>(diff_b2, N_max_, 0.0);
-	initVector1d<double>(diff_c2, N_max_, 0.0);
-	initVector1d<double>(diff_c2_2, N_max_, 0.0);
+	std::vector<double> q_pri(N_stc, 0.0);
+	std::vector<double> diff_f1(N_max_, 0.0);
+	std::vector<double> diff_f2(N_max_, 0.0);
+	std::vector<double> diff_b2(N_max_, 0.0);
+	std::vector<double> diff_c2(N_max_, 0.0);
+	std::vector<double> diff_c2_2(N_max_, 0.0);
 	double M, m;
-	M = *std::max_element(q_, q_ + N_max_);
-	m = *std::min_element(q_, q_ + N_max_);
+	M = *std::max_element(q_.begin(), q_.end());
+	m = *std::min_element(q_.begin(), q_.end());
 
 	for (int i = 2; i < N_max_-2; i++) {
 		diff_f1[i] = q_[i+1]-q_[i];
@@ -227,16 +221,16 @@ void Solver::generatePreProcessedData(int N_stc) { // dataset have conservative 
 		diff_c2_2[i] = (q_[i-1]-2.0*q_[i]+q_[i+1]);
 	}
 	double M_f1, m_f1, M_f2, m_f2, M_c2, m_c2, M_b2, m_b2, M_c2_2, m_c2_2;
-	M_f1 = *std::max_element(diff_f1 + 2, diff_f1 + N_max_ - 2);
-	m_f1 = *std::min_element(diff_f1 + 2, diff_f1 + N_max_ - 2);
-	M_f2 = *std::max_element(diff_f2 + 2, diff_f2 + N_max_ - 2);
-	m_f2 = *std::min_element(diff_f2 + 2, diff_f2 + N_max_ - 2);
-	M_c2 = *std::max_element(diff_c2 + 2, diff_c2 + N_max_ - 2);
-	m_c2 = *std::min_element(diff_c2 + 2, diff_c2 + N_max_ - 2);
-	M_b2 = *std::max_element(diff_b2 + 2, diff_b2 + N_max_ - 2);
-	m_b2 = *std::min_element(diff_b2 + 2, diff_b2 + N_max_ - 2);
-	M_c2_2 = *std::max_element(diff_c2_2 + 2, diff_c2_2 + N_max_ - 2);
-	m_c2_2 = *std::min_element(diff_c2_2 + 2, diff_c2_2 + N_max_ - 2);
+	M_f1 = *std::max_element(diff_f1.begin() + 2, diff_f1.end() - 2);
+	m_f1 = *std::min_element(diff_f1.begin() + 2, diff_f1.end() - 2);
+	M_f2 = *std::max_element(diff_f2.begin() + 2, diff_f2.end() - 2);
+	m_f2 = *std::min_element(diff_f2.begin() + 2, diff_f2.end() - 2);
+	M_c2 = *std::max_element(diff_c2.begin() + 2, diff_c2.end() - 2);
+	m_c2 = *std::min_element(diff_c2.begin() + 2, diff_c2.end() - 2);
+	M_b2 = *std::max_element(diff_b2.begin() + 2, diff_b2.end() - 2);
+	m_b2 = *std::min_element(diff_b2.begin() + 2, diff_b2.end() - 2);
+	M_c2_2 = *std::max_element(diff_c2_2.begin() + 2, diff_c2_2.end() - 2);
+	m_c2_2 = *std::min_element(diff_c2_2.begin() + 2, diff_c2_2.end() - 2);
 
 
 	for (int i = gs_; i < N_max_ - gs_; i++) {
@@ -254,13 +248,7 @@ void Solver::generatePreProcessedData(int N_stc) { // dataset have conservative 
 	}
 	
 
-	freeVector1d<double>(q_pri);
-	freeVector1d<double>(diff_f1);
-	freeVector1d<double>(diff_f2);
-	freeVector1d<double>(diff_c2);
-	freeVector1d<double>(diff_b2);
-	freeVector1d<double>(diff_f2);
-	freeVector1d<double>(diff_c2_2);
+	// vectors are automatically deallocated
 	out.close();
 }
 
@@ -278,8 +266,7 @@ void Solver::generatePreProcessedDataByRandomSampling(int N_samples, int N_stc) 
 		std::cout  << "GhostCell is set incorrectly" << std::endl;
 		exit(EXIT_FAILURE);
 	}
-	double* q_pri;
-	initVector1d<double>(q_pri, N_stc, 0.0);
+	std::vector<double> q_pri(N_stc, 0.0);
 
 	int itr = 0;
 	do {
@@ -301,9 +288,9 @@ void Solver::generatePreProcessedDataByRandomSampling(int N_samples, int N_stc) 
 				*/
 			}
 			if (c == 0) {
-				std::sort(q_pri, q_pri + N_stc);
+				std::sort(q_pri.begin(), q_pri.end());
 			} else {
-				std::sort(q_pri, q_pri + N_stc, std::greater<double>());
+				std::sort(q_pri.begin(), q_pri.end(), std::greater<double>());
 			}
 
 			for (int j = 0; j < N_stc; j++) q_[i-(N_stc-1)/2+j] = q_pri[j];
@@ -318,13 +305,13 @@ void Solver::generatePreProcessedDataByRandomSampling(int N_samples, int N_stc) 
 			out << dummy << "\t";
 			for (int j = 0; j < N_stc; j++) out << q_pri[j] << "\t";
 			out << "\t" << dummy << "\t" << dummy << "\t" << dummy << "\t" << dummy
-				<< "\t" << monotone_indicator << "\t" << dummy << "\t" << dummy << "\t" << dummy << "\t" << selector_[i] << "\n";
+				<< "\t" << monotone_indicator << "\t" << dummy << "\t" << dummy << "\t" << dummy << "\t" << selector_[i][0] << "\n";
 		}
 		itr += (int)(N_cell_/N_stc);
 	} while(itr < N_samples);
 
 	
-	freeVector1d<double>(q_pri);
+	// q_pri will be automatically freed when it goes out of scope
 	out.close();
 	std::cout  << "Successfully generated pre-processed data by random sampling." << std::endl;
 }

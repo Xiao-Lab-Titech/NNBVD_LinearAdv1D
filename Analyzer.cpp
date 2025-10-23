@@ -1,5 +1,4 @@
 #include "Analyzer.H"
-#include "RawVector.H"
 #include "Reconstruction.H"
 #include "Flux.H"
 #include "TimeIntegral.H"
@@ -110,8 +109,10 @@ void Analyzer::plotSnap(double xl, double xr, double yb, double yt, const char* 
 	if (exist_exact) {
 		const int N_max = solvers_[0]->getNmax();
 		const int gs = solvers_[0]->getGhostcell();
-	    const double* qe = solvers_[0]->getQE();
-	    const double* x = solvers_[0]->getX();
+		const std::vector<double>& qe = solvers_[0]->getQE();
+		const std::vector<double>& x = solvers_[0]->getX();
+	    //const double* qe = solvers_[0]->getQE();
+	    //const double* x = solvers_[0]->getX();
 
 		for (int i = gs; i < N_max - gs; i++) {
 			fprintf(fp, "%f %f \n", x[i], qe[i]); 
@@ -121,8 +122,10 @@ void Analyzer::plotSnap(double xl, double xr, double yb, double yt, const char* 
 	for (auto slv : solvers_) {
 		const int N_max = slv->getNmax();
 		const int gs = slv->getGhostcell();
-	    const double* q = slv->getQ();
-	    const double* x = slv->getX();
+		const std::vector<double>& q = slv->getQ();
+		const std::vector<double>& x = slv->getX();
+	    //const double* q = slv->getQ();
+	    //const double* x = slv->getX();
 
 		for (int i = gs; i < N_max - gs; i++) {
 			fprintf(fp, "%f %f \n", x[i], q[i]);
@@ -157,8 +160,10 @@ void Analyzer::plotAnim(FILE* fp, int var) const {
 	if (exist_exact) {
 		const int N_max = solvers_[0]->getNmax();
 		const int gs = solvers_[0]->getGhostcell();
-	    const double* qe = solvers_[0]->getQE();
-    	const double* x = solvers_[0] -> getX();
+		const std::vector<double>& qe = solvers_[0]->getQE();
+		const std::vector<double>& x = solvers_[0]->getX();
+	    //const double* qe = solvers_[0]->getQE();
+    	//const double* x = solvers_[0] -> getX();
 
 		for (int i = gs; i < N_max - gs; i++) {
 			fprintf(fp, "%f %f \n", x[i], qe[i]); 
@@ -168,8 +173,10 @@ void Analyzer::plotAnim(FILE* fp, int var) const {
 	for (auto slv : solvers_) {
 		const int N_max = slv->getNmax();
 		const int gs = slv->getGhostcell();
-	    const double* q = slv->getQ();
-    	const double* x = slv -> getX();
+	    const std::vector<double>& q = slv->getQ();
+		const std::vector<double>& x = slv->getX();
+		//const double* q = slv->getQ();
+    	//const double* x = slv -> getX();
 
 		for (int i = gs; i < N_max - gs; i++) {
 			fprintf(fp, "%f %f \n", x[i], q[i]);

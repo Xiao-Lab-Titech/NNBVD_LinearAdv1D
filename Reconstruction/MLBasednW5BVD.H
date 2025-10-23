@@ -6,13 +6,14 @@
 #include "../Reconstruction.H"
 #include "../Solver.H"
 #include "../Parameter.H"
+#include "../RawVector.H"
 
 class MLBasednW5BVD : public Reconstruction 
 {
 	public :
 		MLBasednW5BVD(Solver* slv, const char* onnx_path, bool isGPU, std::vector<std::string> M);
 		~MLBasednW5BVD(void);
-		void update(cellBoundary* q_bdry, const double* q);
+		void update(std::vector<cellBoundary>& q_bdry, const std::vector<double>& q);
 		std::string getName() const {std::string s = "MLBasednWBVD";return s;}
 		double getReconstructionTime() const {return recon_time_;}
 		double getTransformTime() const {return transform_time_;}
@@ -20,7 +21,7 @@ class MLBasednW5BVD : public Reconstruction
 		double getSelectionTime() const {return selection_time_;}
 
 	private :
-		void inference(const double* q);
+		void inference(const std::vector<double>& q);
 		double calcWENO5(std::string m, double qm2, double qm1, double q0, double qp1, double qp2) const;
 		double calcTHINC(double qm1, double q0, double qp1) const;
 
@@ -56,9 +57,8 @@ class MLBasednW5BVD : public Reconstruction
 		//int N_output_ = 2;
 		const int N_stencil_ = 5;
         int N_cand_func_;
-		double* stencil_;
-		float* y_;
-		double* q_tmp_;
+		std::vector<double> stencil_;
+		std::vector<float> y_;
 		
 };
 
@@ -88,7 +88,7 @@ MLBasednW5BVD::MLBasednW5BVD(Solver* slv, const char* onnx_path, bool isGPU, std
 
     } else {
         std::cout << "CPU Inferrence." << std::endl;
-		int N_threads = 4; // 2 or 4
+		int N_threads = 1; // 2 or 4
 		//session_options_.SetInterOpNumThreads(N_threads);
 		session_options_.SetIntraOpNumThreads(N_threads);
     }
@@ -110,6 +110,7 @@ MLBasednW5BVD::MLBasednW5BVD(Solver* slv, const char* onnx_path, bool isGPU, std
     input_shapes_[0] = N_variable*N_max; input_shapes_[1] = N_input; 
     output_shapes_[0] = N_variable*N_max; output_shapes_[1] = N_output;
 
+
 	initVector1d(input_data_, N_input_data, 0.f);
 	initVector1d(output_data_, N_output_data, 0.f);
     Ort::MemoryInfo memory_info = Ort::MemoryInfo::CreateCpu(OrtDeviceAllocator, OrtMemTypeCPU);
@@ -118,23 +119,23 @@ MLBasednW5BVD::MLBasednW5BVD(Solver* slv, const char* onnx_path, bool isGPU, std
 
 	beta_ = 1.6;
 	T1_ = tanh(0.5*beta_);
-	initVector1d(stencil_, N_stencil_+2, 0.0);
-	initVector1d(y_, N_max, 0.0f);
+	stencil_.assign(N_stencil_+2, 0.0);
+	y_.assign(N_max, 0.0f);
+	//initVector1d(stencil_, N_stencil_+2, 0.0);
+	//initVector1d(y_, N_max, 0.0f);
 
 }
 
 MLBasednW5BVD::~MLBasednW5BVD(void) {
     //int N_max = solver_->getNmax();
-	freeVector1d(input_shapes_);
-	freeVector1d(output_shapes_);
 	freeVector1d(input_data_);
 	freeVector1d(output_data_);
+	freeVector1d(input_shapes_);
+	freeVector1d(output_shapes_);
 
-	freeVector1d(stencil_);
-	freeVector1d(y_);
 }
 
-void MLBasednW5BVD::update(cellBoundary* q_bdry, const double* q) {
+void MLBasednW5BVD::update(std::vector<cellBoundary>& q_bdry, const std::vector<double>& q) {
 	const int N_max = solver_->getNmax();
 	const int gs = solver_->getGhostcell();
 
@@ -170,17 +171,22 @@ void MLBasednW5BVD::update(cellBoundary* q_bdry, const double* q) {
 	recon_time_ += elapsed;
 }
 
-inline void MLBasednW5BVD::inference(const double* q) {
+inline void MLBasednW5BVD::inference(const std::vector<double>& q) {
 	const int N_max = solver_->getNmax();
 	const int gs = solver_->getGhostcell();
 	int N_input = 0;
 
-	double *diff_f1, *diff_f2, *diff_b2, *diff_c2, *diff_c2_2;
-	initVector1d<double>(diff_f1, N_max, 0.0);
-	initVector1d<double>(diff_f2, N_max, 0.0);
-	initVector1d<double>(diff_b2, N_max, 0.0);
-	initVector1d<double>(diff_c2, N_max, 0.0);
-	initVector1d<double>(diff_c2_2, N_max, 0.0);
+	std::vector<double> diff_f1, diff_f2, diff_b2, diff_c2, diff_c2_2;
+	diff_f1.assign(N_max, 0.0);
+	diff_f2.assign(N_max, 0.0);
+	diff_b2.assign(N_max, 0.0);
+	diff_c2.assign(N_max, 0.0);
+	diff_c2_2.assign(N_max, 0.0);
+	//initVector1d<double>(diff_f1, N_max, 0.0);
+	//initVector1d<double>(diff_f2, N_max, 0.0);
+	//initVector1d<double>(diff_b2, N_max, 0.0);
+	//initVector1d<double>(diff_c2, N_max, 0.0);
+	//initVector1d<double>(diff_c2_2, N_max, 0.0);
 
 	for (int i = 2; i < N_max-2; i++) {
 		diff_f1[i] = fabs(q[i+1]-q[i]);
@@ -190,15 +196,16 @@ inline void MLBasednW5BVD::inference(const double* q) {
 		diff_c2_2[i] = fabs(q[i-1]-2.0*q[i]+q[i+1]);
 	}
 	double M_f1, M_f2, M_c2, M_b2, M_c2_2;
-	M_f1 = *std::max_element(diff_f1 + 2, diff_f1 + N_max - 2);
-	M_f2 = *std::max_element(diff_f2 + 2, diff_f2 + N_max - 2);
-	M_c2 = *std::max_element(diff_c2 + 2, diff_c2 + N_max - 2);
-	M_b2 = *std::max_element(diff_b2 + 2, diff_b2 + N_max - 2);
-	M_c2_2 = *std::max_element(diff_c2_2 + 2, diff_c2_2 + N_max - 2);
+	M_f1 = *std::max_element(diff_f1.begin() + 2, diff_f1.end() - 2);
+	M_f2 = *std::max_element(diff_f2.begin() + 2, diff_f2.end() - 2);
+	M_c2 = *std::max_element(diff_c2.begin() + 2, diff_c2.end() - 2);
+	M_b2 = *std::max_element(diff_b2.begin() + 2, diff_b2.end() - 2);
+	M_c2_2 = *std::max_element(diff_c2_2.begin() + 2, diff_c2_2.end() - 2);
 
 
-    double* in;
-    initVector1d(in, N_input_, 0.0);
+	std::vector<double> in;
+	in.assign(N_input_, 0.0);
+    //initVector1d(in, N_input_, 0.0);
 
     for (int i = gs; i < N_max - gs; i++) {
         for (int j = 0; j < N_stencil_ + 2; j++) {
@@ -250,7 +257,7 @@ inline void MLBasednW5BVD::inference(const double* q) {
         //printf("j = %d, [%f ,%f ,%f ,%f ,%f ,%f]\n", j, input_data_[N_input-6], input_data_[N_input-5],input_data_[N_input-4],input_data_[N_input-3],input_data_[N_input-2],input_data_[N_input-1]);
     }
 
-    freeVector1d(in);
+    //freeVector1d(in);
 
 	session_.Run(run_options_, &input_names_ , &input_tensor_, 1U, &output_names_ , &output_tensor_, 1U);
 

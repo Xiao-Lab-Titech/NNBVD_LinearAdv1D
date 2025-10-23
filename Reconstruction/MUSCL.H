@@ -5,7 +5,7 @@
 #include "../Reconstruction.H"
 #include "../Solver.H"
 #include "../Parameter.H"
-#include "../RawVector.H"
+#include <vector>
 
 enum limiter {minmod, superbee, vanLeer, vanAlbada};
 
@@ -14,7 +14,7 @@ class MUSCL : public Reconstruction
 	public :
 		MUSCL(Solver* slv, limiter lim = limiter::vanLeer);
 		~MUSCL(void);
-		void update(cellBoundary** q_bdry, const double* const* q);
+		void update(std::vector<cellBoundary>& q_bdry, const std::vector<double>& q);
 		std::string getName() const {std::string s = "MUSCL";return s;}
 		double getReconstructionTime() const {return recon_time_;}
 
@@ -33,7 +33,7 @@ class MUSCL : public Reconstruction
 		double recon_time_;
 		int N_stencil_ = 3;
 	
-		double** q_tmp_;
+		std::vector<std::vector<double>> q_tmp_;
 };
 
 
@@ -42,20 +42,19 @@ MUSCL::MUSCL(Solver* slv, limiter lim) : solver_(slv), lim_(lim) {
 	recon_time_ = 0.0;
 
 	int N_max = solver_->getNmax();
-	initVector2d<double>(q_tmp_, 3, N_max, 0.0);
+	q_tmp_ = std::vector<std::vector<double>>(3, std::vector<double>(N_max, 0.0));
 }
 
 MUSCL::~MUSCL(void) {
-	freeVector2d<double>(q_tmp_, 3);
+	// std::vector members are automatically deallocated
 }
 
 //::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-void MUSCL::update(cellBoundary** q_bdry, const double* const* q) {
+void MUSCL::update(std::vector<cellBoundary>& q_bdry, const std::vector<double>& q) {
 	int N_max = solver_->getNmax();
 	int gs = solver_->getGhostcell();
 	const double gamma = solver_->getGamma();
-	double** stencil;
-	initVector2d<double>(stencil, 3, N_stencil_ + 1, 0.0);
+	std::vector<std::vector<double>> stencil(3, std::vector<double>(N_stencil_ + 1, 0.0));
 	
 	Reconstruction::transform(RECONSTRUCTION_VAR, solver_, q_tmp_, q);
 
@@ -70,9 +69,8 @@ void MUSCL::update(cellBoundary** q_bdry, const double* const* q) {
 		if (RECONSTRUCTION_VAR == 1 && IS_CHARACTERISTIC_DECOMP) Reconstruction::prim2charX(stencil, N_stencil_, q_tmp_, gamma, i, i+1);
 		
 		for (int j = 0; j < 3; j++) {
-			q_bdry[j][i+1].L = calcMUSCL(stencil[j][0], stencil[j][1], stencil[j][2]);
-			q_bdry[j][i+1].R = calcMUSCL(stencil[j][3], stencil[j][2], stencil[j][1]);
-
+			q_bdry[i+1].L = calcMUSCL(stencil[j][0], stencil[j][1], stencil[j][2]);
+			q_bdry[i+1].R = calcMUSCL(stencil[j][3], stencil[j][2], stencil[j][1]);
 		}
 	}
 
@@ -81,7 +79,7 @@ void MUSCL::update(cellBoundary** q_bdry, const double* const* q) {
 		if (RECONSTRUCTION_VAR == 1 && IS_CHARACTERISTIC_DECOMP) Reconstruction::char2primX(q_bdry, q_tmp_, gamma, i-1, i, i);
 	}
 
-	freeVector2d<double>(stencil, 3);
+	// std::vector stencil is automatically deallocated
 }
 
 double MUSCL::calcMUSCL(double qm1, double q0, double qp1) const {

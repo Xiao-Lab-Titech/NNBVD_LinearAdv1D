@@ -3,14 +3,14 @@
 
 #include "../Reconstruction.H"
 #include "../Solver.H"
-#include "../RawVector.H"
+#include <vector>
 
 class Upwind : public Reconstruction 
 {
 	public :
 		Upwind(Solver* slv);
 		~Upwind(void);
-		void update(cellBoundary* q_bdry, const double* q);
+		void update(std::vector<cellBoundary>& q_bdry, const std::vector<double>& q);
 		std::string getName() const {std::string s = "Upwind";return s;}
 		double getReconstructionTime() const {return recon_time_;}
 
@@ -31,7 +31,7 @@ Upwind::~Upwind(void) {
 }
 
 //::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-void Upwind::update(cellBoundary* q_bdry, const double* q) {
+void Upwind::update(std::vector<cellBoundary>& q_bdry, const std::vector<double>& q) {
 	int N_max = solver_->getNmax();
 	int gs = solver_->getGhostcell();
 

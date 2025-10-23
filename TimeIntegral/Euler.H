@@ -2,14 +2,14 @@
 #define _Euler_H_
 #include "../TimeIntegral.H"
 #include "../Solver.H"
-#include "../RawVector.H"
+#include <vector>
 
 class Euler : public TimeIntegral
 {
 	public :
 		Euler(Solver* slv);
 		~Euler(void);
-		void update(double* q, const double* flux);
+		void update(std::vector<double>& q, const std::vector<double>& flux);
 		std::string getName() const {std::string s = "Euler";return s;}
 
 		int getSubstep() const {return substep_;}
@@ -31,7 +31,7 @@ inline Euler::Euler(Solver* slv) : solver_(slv) {
 
 inline Euler::~Euler() {}
 
-void Euler::update(double* q, const double* flux) {
+void Euler::update(std::vector<double>& q, const std::vector<double>& flux) {
 	int N_max = solver_->getNmax();
 	int gs = solver_->getGhostcell();
 	double dx = solver_->getDX();

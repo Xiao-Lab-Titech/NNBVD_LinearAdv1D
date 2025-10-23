@@ -1,7 +1,7 @@
 #ifndef _PARAMETER_H_
 #define _PARAMETER_H_
 
-#define N_CELL 200
+#define N_CELL 1000
 #define GHOST_CELL 4
 #define CFL 0.5
 #define ADV_S 1.0 // advection speed

@@ -5,14 +5,14 @@
 #include "../Reconstruction.H"
 #include "../Solver.H"
 #include "../Parameter.H"
-#include "../RawVector.H"
+//#include <vector>
 
 class nW5BVD : public Reconstruction 
 {
 	public :
 		nW5BVD(Solver* slv, std::vector<std::string> M, int TBV_type = 0, bool is_log_selection = false);
 		~nW5BVD(void);
-		void update(cellBoundary* q_bdry, const double* q);
+		void update(std::vector<cellBoundary>& q_bdry, const std::vector<double>& q);
 		std::string getName() const {std::string s = "nW5BVD";return s;}
 
 		double getReconstructionTime() const {return recon_time_;}
@@ -46,10 +46,10 @@ class nW5BVD : public Reconstruction
 	
 		//const int N_stencil_ = 5;
 		int N_cand_func_;
-		cellBoundary** q_bdry_tmp_;
-		double** TBV_;
-		cellBoundary* TBV_mem_;
-		double* TBV_min_;
+		std::vector<std::vector<cellBoundary>> q_bdry_tmp_;
+		std::vector<std::vector<double>> TBV_;
+		std::vector<cellBoundary> TBV_mem_;
+		std::vector<double> TBV_min_;
 		int TBV_type_;
 		double beta_;
 		double T1_;
@@ -78,24 +78,20 @@ nW5BVD::nW5BVD(Solver* slv, std::vector<std::string> M, int TBV_type, bool is_lo
 	int N_max = solver_->getNmax();
 	N_cand_func_ = M_.size();
 	//printf("N=%d",N_cand_func_);
-	initVector2d<cellBoundary>(q_bdry_tmp_, N_cand_func_, N_max, {0.0, 0.0});
-	initVector2d<double>(TBV_, N_cand_func_, N_max, 0.0);
-	initVector1d<cellBoundary>(TBV_mem_, N_max, {99, 99});
-	initVector1d<double>(TBV_min_, N_max, 1.e+308);
+	q_bdry_tmp_ = std::vector<std::vector<cellBoundary>>(N_cand_func_, std::vector<cellBoundary>(N_max, {0.0, 0.0}));
+	TBV_ = std::vector<std::vector<double>>(N_cand_func_, std::vector<double>(N_max, 0.0));
+	TBV_mem_ = std::vector<cellBoundary>(N_max, {99, 99});
+	TBV_min_ = std::vector<double>(N_max, 1.e+308);
 
 	//lambda_Zplus = pow(solver_->getDX(), 2.0/3.0);
 }
 
 nW5BVD::~nW5BVD(void) {
-	int N_max = solver_->getNmax();
-	freeVector2d<cellBoundary>(q_bdry_tmp_, N_cand_func_);
-	freeVector2d<double>(TBV_, N_cand_func_);
-	freeVector1d<cellBoundary>(TBV_mem_);
-	freeVector1d<double>(TBV_min_);
+	// std::vector members are automatically deallocated
 }
 
 //::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-void nW5BVD::update(cellBoundary* q_bdry, const double* q) {
+void nW5BVD::update(std::vector<cellBoundary>& q_bdry, const std::vector<double>& q) {
 	const int N_max = solver_->getNmax();
 	const int gs = solver_->getGhostcell();
 

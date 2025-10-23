@@ -1,7 +1,7 @@
 #include "Problem.H"
 #include "Parameter.H"
 
-void LinearAdv1DProb::initProblem(double* q, double* qe) {
+void LinearAdv1DProb::initProblem(std::vector<double>& q, std::vector<double>& qe) {
     if (idx_ < 0 || idx_ >= static_cast<int>(init_table_.size())) {
         throw std::out_of_range("Unknown problem index: " + std::to_string(idx_));
     }
@@ -12,15 +12,17 @@ void LinearAdv1DProb::initProblem(double* q, double* qe) {
     (this->*memfn)(q, qe);
 }
 
-void LinearAdv1DProb::sineWave(double* q, double* qe) {
+void LinearAdv1DProb::sineWave(std::vector<double>& q, std::vector<double>& qe) {
     int N_max = solver_->getNmax();
     int gs = solver_->getGhostcell();
-    const double* x = solver_->getX();
+    const std::vector<double>& x = solver_->getX();
 
     name_ = "Sine Wave";
     has_exact_ = true;
     xl_ = 0.0; xr_ = 1.0;
     solver_->initCell(xl_, xr_);
+    q.resize(N_max);
+    qe.resize(N_max);
     for (int i = 0; i < N_max; i++) {
         q[i] = 1.0 + 0.5*sin(2.0*PI*(x[i]-x[gs]));
         qe[i] = q[i];
@@ -66,16 +68,18 @@ void LinearAdv1DProb::sineWave(double* q, double* qe) {
 
 }
 
-void LinearAdv1DProb::squareWave(double* q, double* qe) {
+void LinearAdv1DProb::squareWave(std::vector<double>& q, std::vector<double>& qe) {
     int N_max = solver_->getNmax();
     int gs = solver_->getGhostcell();
-    const double* x = solver_->getX();
+    const std::vector<double>& x = solver_->getX();
 
     name_ = "Square Wave";
     has_exact_ = true;
     xl_ = 0.0; xr_ = 1.0;
     double xc = (xr_+xl_)*0.5;
     solver_->initCell(xl_, xr_);
+    q.resize(N_max);
+    qe.resize(N_max);
     for (int i = 0; i < N_max; i++) {
         if (xc-0.1 <= x[i] && x[i] <= xc+0.1) {
             q[i] = 1.0;
@@ -98,10 +102,10 @@ void LinearAdv1DProb::squareWave(double* q, double* qe) {
     //exact_->initialize(qe_);
 }
 
-void LinearAdv1DProb::JiangAndShu(double* q, double* qe) {
+void LinearAdv1DProb::JiangAndShu(std::vector<double>& q, std::vector<double>& qe) {
     int N_max = solver_->getNmax();
     int gs = solver_->getGhostcell();
-    const double* x = solver_->getX();
+    const std::vector<double>& x = solver_->getX();
 
     name_ = "Jiang and Shu";
     has_exact_ = true;
@@ -156,15 +160,18 @@ void LinearAdv1DProb::JiangAndShu(double* q, double* qe) {
     //exact_->initialize(qe_);
 }
 
-void LinearAdv1DProb::randomSine(double* q, double* qe) {
+void LinearAdv1DProb::randomSine(std::vector<double>& q, std::vector<double>& qe) {
     int N_max = solver_->getNmax();
     int gs = solver_->getGhostcell();
-    const double* x = solver_->getX();
+    const std::vector<double>& x = solver_->getX();
 
     name_ = "Random Sine";
     has_exact_ = false;
     xl_ = 0.0; xr_ = 1.0;
     solver_->initCell(xl_, xr_);
+
+    q.resize(N_max);
+    qe.resize(N_max);
 
     unsigned int seed = 123;
     //std::mt19937 mt{ seed };
@@ -188,15 +195,18 @@ void LinearAdv1DProb::randomSine(double* q, double* qe) {
     //exact_->setProblem(idx_);
     //exact_->initialize(qe_);
 }
-void LinearAdv1DProb::randomSquare(double* q, double* qe) {
+void LinearAdv1DProb::randomSquare(std::vector<double>& q, std::vector<double>& qe) {
     int N_max = solver_->getNmax();
     int gs = solver_->getGhostcell();
-    const double* x = solver_->getX();
+    const std::vector<double>& x = solver_->getX();
 
     name_ = "Random Square";
     has_exact_ = false;
     xl_ = 0.0; xr_ = 1.0;
     solver_->initCell(xl_, xr_);
+
+    q.resize(N_max);
+    qe.resize(N_max);
 
     unsigned int seed = 123;
     //std::mt19937 mt{ seed };
@@ -224,10 +234,10 @@ void LinearAdv1DProb::randomSquare(double* q, double* qe) {
     //exact_->initialize(qe_);
 
 }
-void LinearAdv1DProb::randomTriangle(double* q, double* qe) {
+void LinearAdv1DProb::randomTriangle(std::vector<double>& q, std::vector<double>& qe) {
     int N_max = solver_->getNmax();
     int gs = solver_->getGhostcell();
-    const double* x = solver_->getX();
+    const std::vector<double>& x = solver_->getX();
 
     name_ = "Random Triangle";
     has_exact_ = false;
@@ -264,15 +274,18 @@ void LinearAdv1DProb::randomTriangle(double* q, double* qe) {
     //exact_->setProblem(idx_);
     //exact_->initialize(qe_);
 }
-void LinearAdv1DProb::randomPoly(double* q, double* qe) {
+void LinearAdv1DProb::randomPoly(std::vector<double>& q, std::vector<double>& qe) {
     int N_max = solver_->getNmax();
     int gs = solver_->getGhostcell();
-    const double* x = solver_->getX();
+    const std::vector<double>& x = solver_->getX();
 
     name_ = "Random Polynomial";
     has_exact_ = false;
     xl_ = 0.0; xr_ = 1.0;
     solver_->initCell(xl_, xr_);
+
+    q.resize(N_max);
+    qe.resize(N_max);
 
     unsigned int seed = 123;
     //std::mt19937 mt{ seed };
@@ -307,16 +320,18 @@ void LinearAdv1DProb::randomPoly(double* q, double* qe) {
     //exact_->setProblem(idx_);
     //exact_->initialize(qe_);
 }
-void LinearAdv1DProb::nonlinearDiscontinuity(double* q, double* qe) {
+void LinearAdv1DProb::nonlinearDiscontinuity(std::vector<double>& q, std::vector<double>& qe) {
     int N_max = solver_->getNmax();
     int gs = solver_->getGhostcell();
-    const double* x_vec = solver_->getX();
+    const std::vector<double>& x_vec = solver_->getX();
 
     name_ = "Nonlinear Discontinuity";
     has_exact_ = true;
     xl_ = -1.0; xr_ = 1.0;
     solver_->initCell(xl_, xr_);
 
+    q.resize(N_max);
+    qe.resize(N_max);
     for (int i = 0; i < N_max; i++) {
         double x = x_vec[i];
         if (x <= 0.0) {
@@ -338,15 +353,18 @@ void LinearAdv1DProb::nonlinearDiscontinuity(double* q, double* qe) {
     });
     //exact_->initialize(qe_);
 }
-void LinearAdv1DProb::cubedSine(double* q, double* qe) {
+void LinearAdv1DProb::cubedSine(std::vector<double>& q, std::vector<double>& qe) {
     int N_max = solver_->getNmax();
     int gs = solver_->getGhostcell();
-    const double* x_vec = solver_->getX();
+    const std::vector<double>& x_vec = solver_->getX();
 
     name_ = "Cubed Sine";
     has_exact_ = true;
     xl_ = -1.0; xr_ = 1.0;
     solver_->initCell(xl_, xr_);
+
+    q.resize(N_max);
+    qe.resize(N_max);
 
     for (int i = 0; i < N_max; i++) {
         double x = x_vec[i];

@@ -11,7 +11,7 @@ class RoeFlux : public Flux
 		RoeFlux(Analyzer* analyzer) {analyzer->setFlux(this);}
 
 		~RoeFlux(void);
-		void update(double* flux, const cellBoundary* q_bdry);
+		void update(std::vector<double>& flux, const std::vector<cellBoundary>& q_bdry);
 
 		double getMCS() const {return max_characteristic_speed_;}
 		std::string getName() const {std::string s = "Roe";return s;}
@@ -24,7 +24,7 @@ class RoeFlux : public Flux
 };
 
 
-void RoeFlux::update(double* flux, const cellBoundary* q_bdry) {
+void RoeFlux::update(std::vector<double>& flux, const std::vector<cellBoundary>& q_bdry) {
 	int N_max = solver_->getNmax();
 	int gs = solver_->getGhostcell();
 

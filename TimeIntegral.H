@@ -12,7 +12,7 @@ class TimeIntegral
 		TimeIntegral(Solver* slv) : solver_(slv) {solver_->setTimeIntegral(this);}
 		//TimeIntegral(Analyzer* analyzer) {analyzer->setTimeIntegral(this);}
 		~TimeIntegral(void){}
-		virtual void update(double* q, const double* flux) = 0;
+		virtual void update(std::vector<double>& q, const std::vector<double>& flux) = 0;
 
 		virtual int getSubstep() const = 0;
 		virtual int getMaxSubstep() const = 0;

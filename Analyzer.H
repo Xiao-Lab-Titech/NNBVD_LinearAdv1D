@@ -1,6 +1,7 @@
 #ifndef _ANALYZER_H_
 #define _ANALYZER_H_
 #include "Solver.H"
+#include <vector>
 
 
 class Analyzer 

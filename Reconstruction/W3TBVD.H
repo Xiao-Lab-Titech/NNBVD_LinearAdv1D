@@ -5,14 +5,17 @@
 #include "../Reconstruction.H"
 #include "../Solver.H"
 #include "../Parameter.H"
-#include "../RawVector.H"
+#include <vector>
+
+#define RECONSTRUCTION_VAR 0
+#define IS_CHARACTERISTIC_DECOMP false
 
 class W3TBVD : public Reconstruction 
 {
 	public :
 		W3TBVD(Solver* slv);
 		~W3TBVD(void);
-		void update(cellBoundary** q_bdry, const double* const* q);
+		void update(std::vector<cellBoundary>& q_bdry, const std::vector<double>& q);
 		std::string getName() const {std::string s = "W3TBVD";return s;}
 		double getReconstructionTime() const {return recon_time_;}
 		double getTransformTime() const {return transfrom_time_;}
@@ -37,9 +40,9 @@ class W3TBVD : public Reconstruction
 		double beta_;
 		double T1_;
 		const int N_stencil_ = 3;
-		cellBoundary** q_bdry_tmp_;
-		double*** TBV_;
-		double** q_tmp_;
+		std::vector<std::vector<cellBoundary>> q_bdry_tmp_;
+		std::vector<std::vector<std::vector<double>>> TBV_;
+		std::vector<std::vector<double>> q_tmp_;
 };
 
 
@@ -55,25 +58,21 @@ W3TBVD::W3TBVD(Solver* slv) : solver_(slv) {
 	T1_ = tanh(0.5*beta_);
 
 	int N_max = solver_->getNmax();
-	initVector2d<cellBoundary>(q_bdry_tmp_, 3, N_max, {0.0, 0.0});
-	initVector3d<double>(TBV_, 2, 3, N_max, 0.0);
-	initVector2d<double>(q_tmp_, 3, N_max, 0.0);
+	q_bdry_tmp_ = std::vector<std::vector<cellBoundary>>(3, std::vector<cellBoundary>(N_max, {0.0, 0.0}));
+	TBV_ = std::vector<std::vector<std::vector<double>>>(2, std::vector<std::vector<double>>(3, std::vector<double>(N_max, 0.0)));
+	q_tmp_ = std::vector<std::vector<double>>(3, std::vector<double>(N_max, 0.0));
 }
 
 W3TBVD::~W3TBVD(void) {
-	//int N_max = solver_->getNmax();
-	freeVector2d<cellBoundary>(q_bdry_tmp_, 3);
-	freeVector3d<double>(TBV_, 2, 3);
-	freeVector2d<double>(q_tmp_, 3);
+	// std::vector members are automatically deallocated
 }
 
 //::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-void W3TBVD::update(cellBoundary** q_bdry, const double* const* q) {
+void W3TBVD::update(std::vector<cellBoundary>& q_bdry, const std::vector<double>& q) {
 	const int N_max = solver_->getNmax();
 	const int gs = solver_->getGhostcell();
 	const double gamma = solver_->getGamma();
-	double** stencil;
-	initVector2d<double>(stencil, 3, N_stencil_ + 1, 0.0);
+	std::vector<std::vector<double>> stencil(3, std::vector<double>(N_stencil_ + 1, 0.0));
 
 	double start = omp_get_wtime();
 	Reconstruction::transform(RECONSTRUCTION_VAR, solver_, q_tmp_, q);
@@ -90,8 +89,8 @@ void W3TBVD::update(cellBoundary** q_bdry, const double* const* q) {
 		if (RECONSTRUCTION_VAR == 1 && IS_CHARACTERISTIC_DECOMP) Reconstruction::prim2charX(stencil, N_stencil_, q_tmp_, gamma, i, i+1);
 		
 		for (int j = 0; j < 3; j++) {
-			q_bdry[j][i+1].L = calcWENO3(stencil[j][0], stencil[j][1], stencil[j][2]);
-			q_bdry[j][i+1].R = calcWENO3(stencil[j][3], stencil[j][2], stencil[j][1]);
+			q_bdry[i+1].L = calcWENO3(stencil[j][0], stencil[j][1], stencil[j][2]);
+			q_bdry[i+1].R = calcWENO3(stencil[j][3], stencil[j][2], stencil[j][1]);
 
 			q_bdry_tmp_[j][i+1].L = calcTHINC(stencil[j][0], stencil[j][1], stencil[j][2]);
 			q_bdry_tmp_[j][i+1].R = calcTHINC(stencil[j][3], stencil[j][2], stencil[j][1]);
@@ -101,7 +100,7 @@ void W3TBVD::update(cellBoundary** q_bdry, const double* const* q) {
 	double time_stamp2 = omp_get_wtime();
 	for (int i = 0; i < 3; i++) {
 		for (int j = gs - 1; j < N_max - gs + 1; j++) {
-			TBV_[0][i][j] = fabs(q_bdry[i][j].L - q_bdry[i][j].R) + fabs(q_bdry[i][j+1].L - q_bdry[i][j+1].R);
+			TBV_[0][i][j] = fabs(q_bdry[j].L - q_bdry[j].R) + fabs(q_bdry[j+1].L - q_bdry[j+1].R);
 			TBV_[1][i][j] = fabs(q_bdry_tmp_[i][j].L - q_bdry_tmp_[i][j].R) + fabs(q_bdry_tmp_[i][j+1].L - q_bdry_tmp_[i][j+1].R);
 		}
 	}
@@ -110,8 +109,8 @@ void W3TBVD::update(cellBoundary** q_bdry, const double* const* q) {
 	for (int i = 0; i < 3; i++) {
 		for (int j = gs - 1; j < N_max - gs + 1; j++) {
 			if (TBV_[0][i][j] > TBV_[1][i][j]) {
-				q_bdry[i][j+1].L = q_bdry_tmp_[i][j+1].L;
-				q_bdry[i][j].R = q_bdry_tmp_[i][j].R;
+				q_bdry[j+1].L = q_bdry_tmp_[i][j+1].L;
+				q_bdry[j].R = q_bdry_tmp_[i][j].R;
 				solver_->setSelector(i, j, 1);
 			} else {
 				solver_->setSelector(i, j, 0);
@@ -124,7 +123,7 @@ void W3TBVD::update(cellBoundary** q_bdry, const double* const* q) {
 		if (RECONSTRUCTION_VAR == 1 && IS_CHARACTERISTIC_DECOMP) Reconstruction::char2primX(q_bdry, q_tmp_, gamma, i-1, i, i);
 	}
 
-	freeVector2d<double>(stencil, 3);
+	// std::vector stencil is automatically deallocated
 
 	double end = omp_get_wtime();
 	//end = std::chrono::system_clock::now(); // 計測終了

@@ -2,14 +2,14 @@
 #define _RK3_H_
 #include "../TimeIntegral.H"
 #include "../Solver.H"
-#include "../RawVector.H"
+#include <vector>
 
 class RK3 : public TimeIntegral
 {
 	public :
 		RK3(Solver* slv);
 		~RK3(void);
-		void update(double* q, const double* flux);
+		void update(std::vector<double>& q, const std::vector<double>& flux);
 		std::string getName() const {std::string s = "RK3";return s;}
 
 		int getSubstep() const {return substep_;}
@@ -21,8 +21,8 @@ class RK3 : public TimeIntegral
 		int substep_;
 		const int max_substep_ = 3;
 	
-		double* q_star_;
-		double* q_tmp_;
+		std::vector<double> q_star_;
+		std::vector<double> q_tmp_;
 };
 
 
@@ -32,19 +32,17 @@ inline RK3::RK3(Solver* slv) : solver_(slv) {
 
 	substep_ = 1;
 	int N_max = solver_->getNmax();
-	initVector1d<double>(q_star_, N_max, 0.0);
-	initVector1d<double>(q_tmp_, N_max, 0.0);
+	q_star_ = std::vector<double>(N_max, 0.0);
+	q_tmp_ = std::vector<double>(N_max, 0.0);
 }
 
 
 
 inline RK3::~RK3() {
-	//int N_max = solver_->getNmax();
-	freeVector1d<double>(q_star_);
-	freeVector1d<double>(q_tmp_);
+	// std::vector members are automatically deallocated
 }
 
-void RK3::update(double* q, const double* flux) {
+void RK3::update(std::vector<double>& q, const std::vector<double>& flux) {
 	int N_max = solver_->getNmax();
 	int gs = solver_->getGhostcell();
 	double dx = solver_->getDX();

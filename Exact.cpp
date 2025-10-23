@@ -1,10 +1,10 @@
 #include "Exact.H"
 
-void Exact::update(double* qe) {
+void Exact::update(std::vector<double>& qe) {
     int gs = solver_->getGhostcell();
     int N_max = solver_->getNmax();
     double t = solver_->getT();
-    const double* x = solver_->getX();
+    const std::vector<double>& x = solver_->getX();
     double xl = solver_->getXL();
     double xr = solver_->getXR();
     double x_domain = xr - xl;
@@ -12,6 +12,7 @@ void Exact::update(double* qe) {
     // Require problem to provide exact function. If not set, do nothing.
     if (!g_func_) return;
 
+    qe.resize(N_max);
     for (int i = 0; i < N_max; i++) {
         double x_new;
         double transfer = ADV_S*t;
@@ -28,4 +29,4 @@ void Exact::setProblem(int idx_problem) {
     idx_problem_ = idx_problem;
 }
 
-void Exact::initialize(double* qe) {}
+void Exact::initialize(std::vector<double>& qe) {}
